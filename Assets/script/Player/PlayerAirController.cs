@@ -9,12 +9,7 @@ public class PlayerAirController : MonoBehaviour
     [SerializeField] private Animator _animator;
     [SerializeField] private PlayerTrickLoadout _loadout;
     [SerializeField] private ScoreUI scoreUI;
-
-    [Header("Trick Prop")]
-    [SerializeField] private TrickProp _trickProp;
-    [SerializeField] private float _propTorqueForce = 50f;
-    [SerializeField] private float _launchAngle = 45f;
-    [SerializeField] private float _launchSpeed = 40f;
+    [SerializeField] private BallSpawner _propLauncher;
 
     private bool _isAirborne;
 
@@ -112,28 +107,7 @@ public class PlayerAirController : MonoBehaviour
 
     public void SpawnTrickProp()
     {
-        if (_trickProp == null)
-            return;
-
-        _trickProp.transform.parent = null;
-        _trickProp.gameObject.SetActive(true);
-
-        Rigidbody rb = _trickProp.GetComponent<Rigidbody>();
-        if (rb == null)
-            return;
-
-        rb.isKinematic = false;
-        rb.useGravity = true;
-        rb.velocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
-
-        Vector3 launchDirection = Quaternion.Euler(-_launchAngle, 0f, 0f) * transform.forward;
-
-        float power = _launchSpeed; 
-
-        rb.AddForce(launchDirection * power, ForceMode.Impulse);
-
-        rb.AddTorque(transform.right * _propTorqueForce, ForceMode.Impulse);
+        _propLauncher.Launch();
     }
 
 }
