@@ -12,4 +12,10 @@ public class ScoreUI : MonoBehaviour
         score += amount;
         scoreText.text = score.ToString();
     }
+
+    public void MinusScore(int amount)
+    {
+        score -= amount;
+        scoreText.text = score.ToString();
+    }
 }

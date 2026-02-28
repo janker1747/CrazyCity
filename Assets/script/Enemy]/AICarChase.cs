@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 using ArcadeVP;
 
@@ -37,6 +37,23 @@ public class AICarChase : MonoBehaviour
     [Range(0f, 1f)]
     public float maxForwardInput = 1f;
 
+    [Header("Turn on spot")]
+    [Tooltip("If angle to target is greater than this, car will attempt to turn on spot (if speed is low).")]
+    public float turnOnSpotAngleThreshold = 120f;
+
+    [Tooltip("Speed below which car will consider turning on spot.")]
+    public float turnOnSpotSpeedThreshold = 2f;
+
+    [Tooltip("Maximum duration of turning on spot before giving up.")]
+    public float turnOnSpotMaxDuration = 2f;
+
+    [Tooltip("Angle difference at which car exits turn-on-spot mode.")]
+    public float turnOnSpotExitAngle = 20f;
+
+    private bool isTurningOnSpot;
+    private float turnOnSpotTimer;
+    private float turnDirection; // 1 = right, -1 = left
+
     private void Awake()
     {
         if (vehicleController == null)
@@ -60,38 +77,22 @@ public class AICarChase : MonoBehaviour
     {
         if (target == null || vehicleController == null ||
             vehicleController.carBody == null || agent == null)
-        {
             return;
-        }
 
+        // Проверка застревания с исключением для близкой цели
         CheckIfStuck();
 
         agent.SetDestination(target.position);
 
-        Vector3 nextPoint;
-
-        if (agent.hasPath && agent.path.corners.Length > 1)
-        {
-            nextPoint = agent.path.corners[1];
-        }
-        else
-        {
-            nextPoint = target.position;
-        }
-
-        Vector3 localTarget = vehicleController.carBody.transform
-            .InverseTransformPoint(nextPoint);
-
-        float distance = Vector3.Distance(vehicleController.carBody.position, nextPoint);
-
+        // --- Reverse logic (priority) ---
         if (isReversing)
         {
             reverseTimer -= Time.deltaTime;
-
             if (reverseTimer > 0f)
             {
-                float turnDir = Mathf.Sign(localTarget.x);
-                ApplyInputs(turnDir, -1f);
+                float turnDir = Mathf.Sign(vehicleController.carBody.transform
+                    .InverseTransformPoint(target.position).x);
+                ApplyInputs(turnDir, -1f, 0f);
                 agent.nextPosition = vehicleController.carBody.position;
                 return;
             }
@@ -101,36 +102,75 @@ public class AICarChase : MonoBehaviour
             }
         }
 
-        float horizontal = Mathf.Clamp(localTarget.x, -1f, 1f) * steeringStrength;
-        float forward = 0f;
-
-        if (distance > stopDistance)
+        // --- Turn on spot logic ---
+        if (isTurningOnSpot)
         {
-            forward = maxForwardInput;
+            if (HandleTurnOnSpotAndApply())
+                return;
+        }
 
-            if (distance < slowDownDistance)
+        if (!isTurningOnSpot && ShouldTurnOnSpot())
+        {
+            StartTurnOnSpot();
+            if (isTurningOnSpot)
             {
-                float t = Mathf.InverseLerp(stopDistance, slowDownDistance, distance);
-                forward *= t;
-            }
-
-            if (localTarget.z < 0f)
-            {
-                forward *= 0.5f;
+                HandleTurnOnSpotAndApply();
+                return;
             }
         }
 
-        ApplyInputs(horizontal, forward);
+        // --- Нормальное преследование с тараном ---
+        Vector3 nextPoint;
+        if (agent.hasPath && agent.path.corners.Length > 1)
+            nextPoint = agent.path.corners[1];
+        else
+            nextPoint = target.position;
 
+        Vector3 localTarget = vehicleController.carBody.transform.InverseTransformPoint(nextPoint);
+        float distance = Vector3.Distance(vehicleController.carBody.position, nextPoint);
+        float distToTarget = Vector3.Distance(vehicleController.carBody.position, target.position);
+
+        // Управление: всегда пытаемся ехать вперёд, если цель не сзади
+        float horizontal = Mathf.Clamp(localTarget.x, -1f, 1f) * steeringStrength;
+        float forward = maxForwardInput;
+
+        // Небольшое замедление на дальних подходах (опционально)
+        if (distance < slowDownDistance)
+        {
+            float t = Mathf.InverseLerp(0f, slowDownDistance, distance);
+            forward *= Mathf.Lerp(0.5f, 1f, t); // даже на минимальной дистанции не ниже 0.5
+        }
+
+        // Если цель сзади, сбрасываем газ (чтобы не уехать в другую сторону)
+        if (localTarget.z < 0f)
+        {
+            forward *= 0.3f; // немного газа для возможного разворота
+        }
+
+        // Если игрок совсем рядом – газ на полную, чтобы таранить
+        if (distToTarget < 2f)
+            forward = maxForwardInput;
+
+        ApplyInputs(horizontal, forward, 0f);
         agent.nextPosition = vehicleController.carBody.position;
     }
 
+
     private void CheckIfStuck()
     {
+        if (isReversing || isTurningOnSpot) return;
+
+        float distToTarget = Vector3.Distance(vehicleController.carBody.position, target.position);
+        if (distToTarget < 2f) // рядом с игроком – не считаем застреванием
+        {
+            stuckTimer = 0f;
+            lastPosition = vehicleController.carBody.position;
+            return;
+        }
+
         if (Vector3.Distance(vehicleController.carBody.position, lastPosition) < minMoveDistance)
         {
             stuckTimer += Time.deltaTime;
-
             if (stuckTimer > stuckCheckTime)
             {
                 isReversing = true;
@@ -146,11 +186,56 @@ public class AICarChase : MonoBehaviour
         lastPosition = vehicleController.carBody.position;
     }
 
-    private void ApplyInputs(float horizontal, float forward)
+    private bool ShouldTurnOnSpot()
+    {
+        if (isReversing || isTurningOnSpot) return false;
+
+        Vector3 toTarget = (target.position - vehicleController.carBody.position).normalized;
+        float angle = Vector3.Angle(vehicleController.carBody.transform.forward, toTarget);
+        float speed = vehicleController.carBody.velocity.magnitude;
+
+        // Не включаем разворот, если игрок уже близко – просто тараним
+        float distToTarget = Vector3.Distance(vehicleController.carBody.position, target.position);
+        if (distToTarget < 5f) return false;
+
+        return angle > turnOnSpotAngleThreshold && speed < turnOnSpotSpeedThreshold;
+    }
+
+    private void StartTurnOnSpot()
+    {
+        isTurningOnSpot = true;
+        turnOnSpotTimer = 0f;
+
+        // Determine turn direction using local space
+        Vector3 toTarget = (target.position - vehicleController.carBody.position).normalized;
+        Vector3 localDir = vehicleController.carBody.transform.InverseTransformDirection(toTarget);
+        turnDirection = Mathf.Sign(localDir.x); // positive = target on right -> turn right
+    }
+
+    private bool HandleTurnOnSpotAndApply()
+    {
+        turnOnSpotTimer += Time.deltaTime;
+
+        Vector3 toTarget = (target.position - vehicleController.carBody.position).normalized;
+        float angle = Vector3.Angle(vehicleController.carBody.transform.forward, toTarget);
+
+        if (angle < turnOnSpotExitAngle || turnOnSpotTimer > turnOnSpotMaxDuration)
+        {
+            isTurningOnSpot = false;
+            return false;
+        }
+
+        // Во время разворота даём чуть больше газа, чтобы не стоять
+        ApplyInputs(turnDirection, 0.3f, 0.5f);
+        agent.nextPosition = vehicleController.carBody.position;
+        return true;
+    }
+
+    private void ApplyInputs(float horizontal, float forward, float handbrake)
     {
         vehicleController.overrideInput = true;
         vehicleController.overrideHorizontal = Mathf.Clamp(horizontal, -1f, 1f);
         vehicleController.overrideVertical = Mathf.Clamp(forward, -1f, 1f);
-        vehicleController.overrideJump = 0f;
+        vehicleController.overrideJump = Mathf.Clamp(handbrake, 0f, 1f);
     }
 }
