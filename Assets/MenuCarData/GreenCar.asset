@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09d80bfaf1a5ca545a5f9ac4303b1707, type: 3}
+  m_Name: GreenCar
+  m_EditorClassIdentifier: 
+  PlayerPrefab: {fileID: 7077214885359719540, guid: e52c786d75a0b994b9bdfbcd04b61744, type: 3}
+  PlayerSprite: {fileID: -2098754389, guid: 9dcb0c2d4c916344c858357aae7aa555, type: 3}
+  PlayerName: greeen car
+  speed: 130
+  health: 5
+  damage: 3
