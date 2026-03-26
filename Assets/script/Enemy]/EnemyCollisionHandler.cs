@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyCollisionHandler : MonoBehaviour
@@ -10,9 +8,16 @@ public class EnemyCollisionHandler : MonoBehaviour
     {
         Player player = collision.gameObject.GetComponent<Player>();
 
-        if (player != null)
+        if (player == null)
+            return;
+
+        if (player.HasShield)
         {
-            player.gameObject.GetComponent<PlayerHealth>().TakeDamage(_damage);
+            player.ConsumeShield();
+            Debug.Log("Shield absorbed the hit");
+            return;
         }
+
+        player.RemoveScore((int)_damage);
     }
 }

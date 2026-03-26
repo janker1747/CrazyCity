@@ -1,43 +1,55 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 public class PlayerCollisionHandler : MonoBehaviour
 {
-    [SerializeField] private float _maxValue;
-    [SerializeField] private float _minValue;
-    [SerializeField] private ForceMode _forceMode = ForceMode.Impulse; // Режим силы
-    [SerializeField] private ScoreUI _scoreUI;
+    [SerializeField] private float _impactForce;
+    [SerializeField] private float baseForce;
 
-    [Header("Add Score value")]
-    private  int _minAmountValue = 100;
-    private  int  _maxAmountValue = 200;
-    private int _amountValue;
+    private bool PowerOn;
+    private float _speed;
 
-    private float _force;
+    public event Action<Vector3, ImpactData> OnImpact;
+
+    public void SetSpeed(float speed)
+    {
+        _speed = speed;
+    }
 
     private void OnCollisionEnter(Collision collision)
     {
-        IKnockbackable knockbackable = collision.gameObject.GetComponent<IKnockbackable>();
+        _impactForce = baseForce * _speed;
 
-        if (knockbackable != null)
+        Rigidbody rb = collision.rigidbody;
+        ImpactSource source = collision.gameObject.GetComponent<ImpactSource>();
+
+        if (source == null)
+            return;
+
+        if (collision.gameObject.CompareTag("Police"))
         {
-            ApplyKnockback(collision);
+            if (!PowerOn)
+                return;
         }
-    }
 
-    private void ApplyKnockback(Collision collision)
-    {
-        _amountValue = Random.Range(_minAmountValue, _maxAmountValue);
-
-        float knockbackForce = Random.Range(_minValue, _maxValue);
-
+        Vector3 hitPoint = collision.contacts[0].point;
         Vector3 direction = (collision.transform.position - transform.position).normalized;
 
-        Vector3 force = direction * knockbackForce + Vector3.up * (knockbackForce * 0.5f);
+        source.OnKnocked();
 
-        collision.rigidbody.AddForce(force, _forceMode);
+        rb.constraints = RigidbodyConstraints.None;
+        rb.AddForce(direction * _impactForce, ForceMode.Impulse);
 
-        _scoreUI.AddScore(_amountValue);
+        OnImpact?.Invoke(hitPoint, source.Data);
+    }
+
+    public void PowerCollisionOn()
+    {
+        PowerOn = true;
+    }
+
+    public void PowerCollisionOff()
+    {
+        PowerOn = false;
     }
 }

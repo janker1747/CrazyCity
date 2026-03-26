@@ -56,6 +56,12 @@ namespace ArcadeVP
         public float overrideVertical = 0f;
         [Range(0f, 1f)]
         public float overrideJump = 0f;
+
+        private float _currentSpeed;
+        public event Action<float> OnSpeedChanged;
+
+        private RigidbodyConstraints _currentConstraints;
+
         private void Start()
         {
             radius = rb.GetComponent<SphereCollider>().radius;
@@ -64,6 +70,7 @@ namespace ArcadeVP
                 Physics.defaultMaxAngularSpeed = 100;
             }
         }
+
         private void Update()
         {
             if (overrideInput)
@@ -96,6 +103,15 @@ namespace ArcadeVP
         void FixedUpdate()
         {
             carVelocity = carBody.transform.InverseTransformDirection(carBody.velocity);
+
+            float speed = carVelocity.magnitude;
+
+            if (Mathf.Abs(speed - _currentSpeed) > 0.1f)
+            {
+                _currentSpeed = speed;
+                OnSpeedChanged?.Invoke(_currentSpeed);
+            }
+
             if (Mathf.Abs(carVelocity.x) > 0)
             {
                 //changes friction according to sideways speed of car
@@ -118,13 +134,17 @@ namespace ArcadeVP
                 // mormal brakelogic
                 if (!kartLike)
                 {
+                    RigidbodyConstraints target;
+
                     if (jumpInput > 0.1f)
-                    {
-                        rb.constraints = RigidbodyConstraints.FreezeRotationX;
-                    }
+                        target = RigidbodyConstraints.FreezeRotationX;
                     else
+                        target = RigidbodyConstraints.None;
+
+                    if (_currentConstraints != target)
                     {
-                        rb.constraints = RigidbodyConstraints.None;
+                        rb.constraints = target;
+                        _currentConstraints = target;
                     }
                 }
                 //accelaration logic

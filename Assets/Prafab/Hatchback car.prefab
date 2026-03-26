@@ -141,7 +141,7 @@ Transform:
   m_GameObject: {fileID: 2017368881926537999}
   serializedVersion: 2
   m_LocalRotation: {x: 0.28904518, y: 0, z: 0, w: 0.95731544}
-  m_LocalPosition: {x: 0, y: 4.9699993, z: -7.4799957}
+  m_LocalPosition: {x: 0.000017012157, y: 8.283335, z: -12.466649}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -15298,10 +15298,10 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2387553313603232965}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.7122645, z: -0, w: 0.7019113}
+  m_LocalRotation: {x: 0, y: -0.7122649, z: 0, w: 0.70191073}
   m_LocalPosition: {x: 255.76025, y: 4.031, z: -160.04037}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 2387553313442121105}
   - {fileID: 8047169591377506366}
@@ -15349,14 +15349,14 @@ MonoBehaviour:
   drivableSurface:
     serializedVersion: 2
     m_Bits: 1088
-  MaxSpeed: 100
-  accelaration: 20
-  turn: 10
-  gravity: 5
-  downforce: 5
+  MaxSpeed: 74.8
+  accelaration: 12.83
+  turn: 7
+  gravity: 2.5
+  downforce: 2.5
   AirControl: 0
   kartLike: 0
-  driftMultiplier: 1.5
+  driftMultiplier: 0.88
   rb: {fileID: 2387553313442121196}
   carBody: {fileID: 2387553313603232970}
   frictionCurve:
@@ -15435,7 +15435,7 @@ MonoBehaviour:
   - {fileID: 2387553313375155179}
   carVelocity: {x: 0, y: 0, z: 0}
   allowAutoAlign: 1
-  BodyTilt: 10
+  BodyTilt: 6
   engineSound: {fileID: 2387553313603232971}
   minPitch: 0.3
   MaxPitch: 3
@@ -15689,10 +15689,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63093842b4ceaa84c9e3fbf0bdb85e43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _maxValue: 100
-  _minValue: 50
-  _forceMode: 1
-  _scoreUI: {fileID: 2888762287684499310}
+  _impactForce: 0
+  baseForce: 0.1
 --- !u!114 &7875131914731315131
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15705,6 +15703,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8b41eae9889e3742800da28aa4b9b06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  collisionHandler: {fileID: 5758742122403062854}
+  vehicleController: {fileID: 2387553313603232969}
 --- !u!1 &2387553313668957373
 GameObject:
   m_ObjectHideFlags: 0

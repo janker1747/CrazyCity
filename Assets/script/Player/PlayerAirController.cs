@@ -8,8 +8,8 @@ public class PlayerAirController : MonoBehaviour
     [SerializeField] private ArcadeVehicleController _playerVehicle;
     [SerializeField] private Animator _animator;
     [SerializeField] private PlayerTrickLoadout _loadout;
-    [SerializeField] private ScoreUI scoreUI;
     [SerializeField] private BallSpawner _propLauncher;
+    [SerializeField] private Player _player;
 
     private bool _isAirborne;
 
@@ -94,7 +94,7 @@ public class PlayerAirController : MonoBehaviour
 
         Debug.Log($"Трюк {_currentTrick.trickName} выполнен! Очки: {finalScore}");
 
-        scoreUI.AddScore(finalScore);
+        _player.ScoreSystem.AddScore(finalScore);
 
         _isPerformingTrick = false;
         _currentTrick = null;

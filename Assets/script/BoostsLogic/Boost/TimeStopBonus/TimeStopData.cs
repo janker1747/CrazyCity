@@ -1,0 +1,14 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+[CreateAssetMenu(menuName = "Boosts/TimeStop")]
+public class TimeStopData : BoostData
+{
+    public float duration;
+
+    public override IBoost Create(Player player)
+    {
+        return new TimeStopBoost(player, this);
+    }
+}
