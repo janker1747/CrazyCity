@@ -13,4 +13,6 @@ MonoBehaviour:
   m_Name: TimeStopData
   m_EditorClassIdentifier: 
   sprite: {fileID: 21300000, guid: 8617b49a004408e4ea782a296d3d455c, type: 3}
-  duration: 1
+  particlePrefab: {fileID: 2708598583397607910, guid: 6398d43fe79ea0140913dc5530c646af, type: 3}
+  sound: {fileID: 0}
+  duration: 15

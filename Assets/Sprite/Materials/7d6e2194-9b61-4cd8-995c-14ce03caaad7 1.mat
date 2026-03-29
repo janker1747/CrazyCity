@@ -40,7 +40,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 302069ba4e83f8b45983a9d238cf703d, type: 3}
+        m_Texture: {fileID: 2800000, guid: c91db629d1ceda14a9c97c1af235fb7c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MatCapMask:
@@ -148,7 +148,7 @@ Material:
     - _SColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _SpecularColor: {r: 0.75, g: 0.75, b: 0.75, a: 1}
     - _Speed: {r: 0, g: 0, b: 0, a: 0}
-    - _Tilling: {r: 0.1, g: 0.1, b: 0, a: 0}
+    - _Tilling: {r: 1, g: 0.1, b: 0, a: 0}
   m_BuildTextureStacks: []
 --- !u!114 &4946993002382845631
 MonoBehaviour:

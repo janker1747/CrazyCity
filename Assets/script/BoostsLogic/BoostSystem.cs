@@ -1,3 +1,4 @@
+﻿using System;
 using System.Collections.Generic;
 
 public class BoostSystem 
@@ -23,9 +24,16 @@ public class BoostSystem
 
     public void Update(float deltaTime)
     {
-        for (int i = 0; i < _timedBoosts.Count; i++)
+        for (int i = _timedBoosts.Count - 1; i >= 0; i--)
         {
-            _timedBoosts[i].Tick(deltaTime);
+            var boost = _timedBoosts[i];
+            boost.Tick(deltaTime);
+
+            if (boost.IsFinished)
+            {
+                boost.Deactivate();
+                _timedBoosts.RemoveAt(i);
+            }
         }
     }
 

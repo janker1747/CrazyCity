@@ -1,4 +1,7 @@
-﻿public interface IBoost
+﻿using UnityEngine;
+
+public interface IBoost
 {
+
     void Activate();
 }

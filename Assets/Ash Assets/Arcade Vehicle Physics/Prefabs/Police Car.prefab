@@ -160,7 +160,7 @@ GameObject:
   - component: {fileID: 2323939258251818598}
   m_Layer: 0
   m_Name: Police
-  m_TagString: Untagged
+  m_TagString: PoliceMesh
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -5560,7 +5560,7 @@ TrailRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: dc3a589de442f2d45be6cc284f8509e3, type: 2}
+  - {fileID: 2100000, guid: be98b96c7b30498469981716e58c2a21, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -10379,9 +10379,10 @@ GameObject:
   - component: {fileID: 389365996162700377}
   - component: {fileID: 4682580788579912207}
   - component: {fileID: 191857584811993397}
+  - component: {fileID: 1515254399276515107}
   m_Layer: 7
   m_Name: Police Car
-  m_TagString: Untagged
+  m_TagString: Police
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -10763,7 +10764,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7616626608295357079}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f7fdb03b49f69ef4f913bc5b0ab947da, type: 3}
   m_Name: 
@@ -10813,6 +10814,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _damage: 5
+--- !u!114 &1515254399276515107
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7616626608295357079}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d9e1ba48a8d62a40a65491c0a315236, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _impactData: {fileID: 11400000, guid: 527b40fb075c1154f80c22b69ea67f6e, type: 2}
 --- !u!1 &7616626608556651356
 GameObject:
   m_ObjectHideFlags: 0

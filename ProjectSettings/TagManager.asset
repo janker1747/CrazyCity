@@ -6,6 +6,7 @@ TagManager:
   tags:
   - drivable
   - Police
+  - PoliceMesh
   layers:
   - Default
   - TransparentFX
