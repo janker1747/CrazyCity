@@ -219,7 +219,7 @@ Material:
     - _UseShadowTexture: 0
     - _UseSpecular: 0
     - _VoroniParameter: 0
-    - _Voroni_Parameter: 0
+    - _Voroni_Parameter: 0.5
     - _Within: 1
     - _ZWrite: 1
     - _speed: 1
