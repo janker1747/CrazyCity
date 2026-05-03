@@ -224,8 +224,7 @@ namespace ArcadeVP
             if (NewVehicle.GetComponent<BoxCollider>())
             {
                 NewVehicle.GetComponent<BoxCollider>().center = Vector3.zero;
-                NewVehicle.GetComponent<BoxCollider>().size = bodyMesh.bounds.size;
-            }
+                NewVehicle.GetComponent<BoxCollider>().size = bodyMesh.bounds.size;            }
 
             if (NewVehicle.GetComponent<CapsuleCollider>())
             {
