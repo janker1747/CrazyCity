@@ -18,6 +18,9 @@ public class PlayerCollisionHandler : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        Player player = GetComponent<Player>();
+        player?.NotifyCargoCollision(collision);
+
         _impactForce = baseForce * _speed;
 
         Rigidbody rb = collision.rigidbody;

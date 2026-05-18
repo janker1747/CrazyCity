@@ -2,12 +2,13 @@ using UnityEngine;
 
 public class EnemyCollisionHandler : MonoBehaviour
 {
-    [SerializeField] private float _damage = 1f;
+    [SerializeField] private int _damage = 1;
 
     private void OnCollisionEnter(Collision collision)
     {
         Player player = collision.gameObject.GetComponent<Player>();
-
+        PlayerCargoModule cargoModule = collision.gameObject.GetComponent<PlayerCargoModule>();
+            
         if (player == null)
             return;
 
@@ -18,6 +19,12 @@ public class EnemyCollisionHandler : MonoBehaviour
             return;
         }
 
-        player.RemoveScore((int)_damage);
+        int damage = player.ModifyCargoScoreDamage((int)_damage);
+        if (damage <= 0)
+            return;
+    
+        player.RemoveScore(damage);
+        cargoModule.TakeDamage(_damage);
+        player.NotifyCargoScoreDamage(damage);
     }
 }

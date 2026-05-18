@@ -15,5 +15,9 @@ MonoBehaviour:
   cargoName: Timed
   icon: {fileID: 21300032, guid: 7ab74e659e1f0a34d9cfec21c478fc12, type: 3}
   maxValue: 450
-  deliveryTime: 60
+  hasDeliveryTimer: 1
+  deliveryTime: 30
+  comboAmount: 1
+  pickupParticlePrefab: {fileID: 0}
+  pickupSound: {fileID: 0}
   lives: 1

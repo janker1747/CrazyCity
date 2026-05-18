@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class CargoArrowUI : MonoBehaviour
@@ -11,8 +12,9 @@ public class CargoArrowUI : MonoBehaviour
 
     [Header("Rotation")]
     [SerializeField] private float rotationSpeed = 10f; // плавность поворота
+    [SerializeField] private bool trackNearestCargoPickup = true;
 
-    private Transform target;
+    private readonly List<Transform> targets = new();
     private bool warnedAboutMissingReferences;
 
     public void SetPlayer(Transform playerTransform)
@@ -29,8 +31,10 @@ public class CargoArrowUI : MonoBehaviour
         }
 
         EnsureReferences();
+        trackNearestCargoPickup = false;
 
-        target = deliveryTarget;
+        if (!targets.Contains(deliveryTarget))
+            targets.Add(deliveryTarget);
 
         if (arrowModel != null)
             arrowModel.gameObject.SetActive(true);
@@ -38,7 +42,8 @@ public class CargoArrowUI : MonoBehaviour
 
     public void Hide()
     {
-        target = null;
+        targets.Clear();
+        trackNearestCargoPickup = true;
 
         if (arrowModel != null)
             arrowModel.gameObject.SetActive(false);
@@ -50,11 +55,8 @@ public class CargoArrowUI : MonoBehaviour
         Hide();
     }
 
-    private void Update()
+    private void LateUpdate()
     {
-        if (target == null)
-            return;
-
         EnsureReferences();
 
         if (player == null || arrowModel == null)
@@ -63,7 +65,15 @@ public class CargoArrowUI : MonoBehaviour
             return;
         }
 
-        UpdatePositionAndRotation();
+        Transform nearestTarget = trackNearestCargoPickup ? GetNearestCargoPickup() : GetNearestTarget();
+        if (nearestTarget == null)
+        {
+            arrowModel.gameObject.SetActive(false);
+            return;
+        }
+
+        arrowModel.gameObject.SetActive(true);
+        UpdatePositionAndRotation(nearestTarget);
     }
 
     private void EnsureReferences()
@@ -79,7 +89,58 @@ public class CargoArrowUI : MonoBehaviour
         }
     }
 
-    private void UpdatePositionAndRotation()
+    private Transform GetNearestTarget()
+    {
+        if (targets.Count == 0)
+            return null;
+
+        Transform nearestTarget = null;
+        float nearestDistance = float.MaxValue;
+
+        for (int i = targets.Count - 1; i >= 0; i--)
+        {
+            Transform candidate = targets[i];
+            if (candidate == null)
+            {
+                targets.RemoveAt(i);
+                continue;
+            }
+
+            float distance = (candidate.position - player.position).sqrMagnitude;
+            if (distance < nearestDistance)
+            {
+                nearestDistance = distance;
+                nearestTarget = candidate;
+            }
+        }
+
+        return nearestTarget;
+    }
+
+    private Transform GetNearestCargoPickup()
+    {
+        Transform nearestTarget = null;
+        float nearestDistance = float.MaxValue;
+        IReadOnlyList<CargoPickup> pickups = CargoPickup.ActivePickups;
+
+        for (int i = 0; i < pickups.Count; i++)
+        {
+            CargoPickup pickup = pickups[i];
+            if (pickup == null || !pickup.IsAvailable)
+                continue;
+
+            float distance = (pickup.transform.position - player.position).sqrMagnitude;
+            if (distance < nearestDistance)
+            {
+                nearestDistance = distance;
+                nearestTarget = pickup.transform;
+            }
+        }
+
+        return nearestTarget;
+    }
+
+    private void UpdatePositionAndRotation(Transform target)
     {
         // Позиция над игроком
         transform.position = player.position + worldOffset;

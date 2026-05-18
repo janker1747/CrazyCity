@@ -15,5 +15,7 @@ MonoBehaviour:
   cargoName: Moon Stone
   icon: {fileID: 21300026, guid: 7ab74e659e1f0a34d9cfec21c478fc12, type: 3}
   maxValue: 600
+  hasDeliveryTimer: 0
   deliveryTime: 45
+  comboAmount: 1
   gravityMultiplier: 0.5

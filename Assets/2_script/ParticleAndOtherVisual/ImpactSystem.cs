@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class ImpactSystem : MonoBehaviour
 {
+    public static ImpactSystem Current { get; private set; }
+
     [SerializeField] private PlayerCollisionHandler _collisionHandler;
     [SerializeField] private ParticlePool _particlePool;
     [SerializeField] private AudioSource _audioSource;
@@ -9,23 +11,43 @@ public class ImpactSystem : MonoBehaviour
 
     private ScoreSystem _scoreSystem;
 
+    private void Awake()
+    {
+        Current = this;
+    }
+
     private void Start()
     {
-        _scoreSystem = _player.ScoreSystem;
+        if (_player != null)
+            _scoreSystem = _player.ScoreSystem;
     }
 
     private void OnEnable()
     {
-        _collisionHandler.OnImpact += HandleImpact;
+        if (_collisionHandler != null)
+            _collisionHandler.OnImpact += HandleImpact;
     }
 
     private void OnDisable()
     {
-        _collisionHandler.OnImpact -= HandleImpact;
+        if (_collisionHandler != null)
+            _collisionHandler.OnImpact -= HandleImpact;
+
+        if (Current == this)
+            Current = null;
+    }
+
+    public void PlayFeedback(Vector3 position, ParticleSystem particlePrefab, AudioClip sound)
+    {
+        PlayParticles(position, particlePrefab);
+        PlaySound(sound);
     }
 
     private void HandleImpact(Vector3 position, ImpactData data)
     {
+        if (data == null)
+            return;
+
         PlayParticles(position, data);
         PlaySound(data);
         AddScore(data);
@@ -34,10 +56,15 @@ public class ImpactSystem : MonoBehaviour
 
     private void PlayParticles(Vector3 position, ImpactData data)
     {
-        if (data.particlePrefab == null)
+        PlayParticles(position, data != null ? data.particlePrefab : null);
+    }
+
+    private void PlayParticles(Vector3 position, ParticleSystem particlePrefab)
+    {
+        if (particlePrefab == null || _particlePool == null)
             return;
 
-        ParticleSystem particle = _particlePool.GetParticle(data.particlePrefab);
+        ParticleSystem particle = _particlePool.GetParticle(particlePrefab);
 
         particle.transform.position = position;
         particle.Play();
@@ -45,15 +72,20 @@ public class ImpactSystem : MonoBehaviour
 
     private void PlaySound(ImpactData data)
     {
-        if (data.sound == null)
+        PlaySound(data != null ? data.sound : null);
+    }
+
+    private void PlaySound(AudioClip sound)
+    {
+        if (sound == null || _audioSource == null)
             return;
 
-        _audioSource.PlayOneShot(data.sound);
+        _audioSource.PlayOneShot(sound);
     }
 
     private void AddScore(ImpactData data)
     {
-        if (data.score == 0)
+        if (data == null || data.score == 0 || _scoreSystem == null)
             return;
 
         if (data.score > 0)
@@ -64,7 +96,7 @@ public class ImpactSystem : MonoBehaviour
 
     private void ShakeCamera(ImpactData data)
     {
-        if (data.cameraShake <= 0)
+        if (data == null || data.cameraShake <= 0)
             return;
     }
 }

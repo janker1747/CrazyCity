@@ -1,5 +1,6 @@
 ﻿using System;
 using ArcadeVP;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -24,7 +25,14 @@ public class Player : MonoBehaviour
     [SerializeField] private CargoArrowUI _cargoArrowUI;
 
     private float Speed;
+    private float _bonusSpeed;
+    private float _baseVehicleAcceleration;
     private float _baseVehicleGravity;
+    private float _baseVehicleDownforce;
+    private readonly List<float> _speedMultipliers = new List<float>();
+    private readonly List<float> _accelerationMultipliers = new List<float>();
+    private readonly List<float> _gravityMultipliers = new List<float>();
+    private readonly List<float> _downforceMultipliers = new List<float>();
 
     public PlayerBoostSlot BoostSlot;
     public BoostSystem BoostSystem;
@@ -35,8 +43,13 @@ public class Player : MonoBehaviour
     public TimeStopManager Stoper { get { return _stopManager; } }
     public Rigidbody Rigidbody { get; private set; }
     public PlayerCollisionHandler PlayerCollision { get { return _collisionHandler; } }
+    public ArcadeVehicleController VehicleController { get { return _vehicleController; } }
+    public PlayerCargoModule CargoModule { get { EnsureCargoModule(); return _cargoModule; } }
+    public float CurrentSpeed => Rigidbody != null ? Rigidbody.velocity.magnitude : 0f;
     public bool HasShield { get; private set; }
     public Cargo CurrentCargo { get { EnsureCargoModule(); return _cargoModule != null ? _cargoModule.CurrentCargo : null; } }
+    public bool HasActiveCargo { get { EnsureCargoModule(); return _cargoModule != null && _cargoModule.HasActiveCargo; } }
+    public int ActiveCargoCount { get { EnsureCargoModule(); return _cargoModule != null ? _cargoModule.ActiveCargoCount : 0; } }
     public bool CanTakeCargo { get { EnsureCargoModule(); return _cargoModule != null && _cargoModule.CanTakeCargo; } }
 
     private void Awake()
@@ -50,7 +63,9 @@ public class Player : MonoBehaviour
         _scoreUI.Init(ScoreSystem);
 
         Speed = _vehicleController.MaxSpeed;
+        _baseVehicleAcceleration = _vehicleController.accelaration;
         _baseVehicleGravity = _vehicleController.gravity;
+        _baseVehicleDownforce = _vehicleController.downforce;
 
         EnsureCargoModule();
         if (_cargoModule != null)
@@ -97,12 +112,14 @@ public class Player : MonoBehaviour
 
     public void AddSpeed(float Speed)
     {
-        _vehicleController.MaxSpeed += Speed;
+        _bonusSpeed += Speed;
+        ApplyVehicleMultipliers();
     }
 
     public void EndBonusSpeed()
     {
-        _vehicleController.MaxSpeed = Speed;
+        _bonusSpeed = 0f;
+        ApplyVehicleMultipliers();
     }
 
     public void RemoveScore(int amount)
@@ -162,6 +179,106 @@ public class Player : MonoBehaviour
 
         float safeMultiplier = Mathf.Max(0f, multiplier);
         _vehicleController.gravity = _baseVehicleGravity * safeMultiplier;
+    }
+
+    public void AddSpeedMultiplier(float multiplier)
+    {
+        _speedMultipliers.Add(Mathf.Max(0f, multiplier));
+        ApplyVehicleMultipliers();
+    }
+
+    public void RemoveSpeedMultiplier(float multiplier)
+    {
+        RemoveMultiplier(_speedMultipliers, multiplier);
+        ApplyVehicleMultipliers();
+    }
+
+    public void AddAccelerationMultiplier(float multiplier)
+    {
+        _accelerationMultipliers.Add(Mathf.Max(0f, multiplier));
+        ApplyVehicleMultipliers();
+    }
+
+    public void RemoveAccelerationMultiplier(float multiplier)
+    {
+        RemoveMultiplier(_accelerationMultipliers, multiplier);
+        ApplyVehicleMultipliers();
+    }
+
+    public void AddGravityMultiplier(float multiplier)
+    {
+        _gravityMultipliers.Add(Mathf.Max(0f, multiplier));
+        ApplyVehicleMultipliers();
+    }
+
+    public void RemoveGravityMultiplier(float multiplier)
+    {
+        RemoveMultiplier(_gravityMultipliers, multiplier);
+        ApplyVehicleMultipliers();
+    }
+
+    public void AddDownforceMultiplier(float multiplier)
+    {
+        _downforceMultipliers.Add(Mathf.Max(0f, multiplier));
+        ApplyVehicleMultipliers();
+    }
+
+    public void RemoveDownforceMultiplier(float multiplier)
+    {
+        RemoveMultiplier(_downforceMultipliers, multiplier);
+        ApplyVehicleMultipliers();
+    }
+
+    public void NotifyCargoCollision(Collision collision)
+    {
+        EnsureCargoModule();
+        _cargoModule?.NotifyPlayerCollision(collision);
+    }
+
+    public int ModifyCargoScoreDamage(int damage)
+    {
+        EnsureCargoModule();
+        return _cargoModule != null ? _cargoModule.ModifyScoreDamage(damage) : damage;
+    }
+
+    public void NotifyCargoScoreDamage(int damage)
+    {
+        EnsureCargoModule();
+        _cargoModule?.NotifyPlayerScoreDamage(damage);
+    }
+
+    private void ApplyVehicleMultipliers()
+    {
+        if (_vehicleController == null)
+            return;
+
+        _vehicleController.MaxSpeed = (Speed + _bonusSpeed) * Multiply(_speedMultipliers);
+        _vehicleController.accelaration = _baseVehicleAcceleration * Multiply(_accelerationMultipliers);
+        _vehicleController.gravity = _baseVehicleGravity * Multiply(_gravityMultipliers);
+        _vehicleController.downforce = _baseVehicleDownforce * Multiply(_downforceMultipliers);
+    }
+
+    private float Multiply(List<float> multipliers)
+    {
+        float finalMultiplier = 1f;
+        for (int i = 0; i < multipliers.Count; i++)
+            finalMultiplier *= multipliers[i];
+
+        return finalMultiplier;
+    }
+
+    private void RemoveMultiplier(List<float> multipliers, float multiplier)
+    {
+        float safeMultiplier = Mathf.Max(0f, multiplier);
+
+        for (int i = multipliers.Count - 1; i >= 0; i--)
+        {
+            if (!Mathf.Approximately(multipliers[i], safeMultiplier))
+                continue;
+
+            multipliers.RemoveAt(i);
+            return;
+        }
     }
 
     private void EnsureCargoModule()

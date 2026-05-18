@@ -8,12 +8,32 @@ namespace ArcadeVP
         public event Action<bool> OnGrounded;
         public event Action<float> OnSpeedChanged;
 
-        public enum groundCheck { rayCast, sphereCaste }
-        public enum MovementMode { Velocity, AngularVelocity }
-        private enum WallRideState { None, Entering, Riding }
+        public enum groundCheck
+        {
+            rayCast,
+            sphereCaste
+        }
 
-        [Header("Movement")]
-        public MovementMode movementMode;
+        public enum MovementMode
+        {
+            Velocity,
+            AngularVelocity
+        }
+
+        private enum WallRideState
+        {
+            None,
+            Entering,
+            Riding
+        }
+
+        private enum WallApproachType
+        {
+            Forward,
+            Side
+        }
+
+        [Header("Movement")] public MovementMode movementMode;
         public groundCheck GroundCheck;
         public LayerMask drivableSurface;
         public float MaxSpeed = 30f;
@@ -22,69 +42,75 @@ namespace ArcadeVP
         public float gravity = 7f;
         public float downforce = 5f;
 
-        [Tooltip("if true : can turn vehicle in air")]
         public bool AirControl = false;
-
-        [Tooltip("if true : vehicle will drift instead of brake while holding space")]
         public bool kartLike = false;
-
-        [Tooltip("turn more while drifting (while holding space) only if kart Like is true")]
         public float driftMultiplier = 1.5f;
 
-        [Header("References")]
-        public Rigidbody rb;
+        [Header("Ground Check")] [SerializeField]
+        private float groundCheckDistance = 0.8f;
+
+        [SerializeField] private float sphereCastExtraRadius = 0.1f;
+
+        [Header("References")] public Rigidbody rb;
         public Rigidbody carBody;
 
         [HideInInspector] public RaycastHit hit;
 
-        [Header("Curves / Physics")]
-        public AnimationCurve frictionCurve;
+        [Header("Curves / Physics")] public AnimationCurve frictionCurve;
         public AnimationCurve turnCurve;
         public PhysicMaterial frictionMaterial;
 
-        [Header("Visuals")]
-        public Transform BodyMesh;
+        [Header("Visuals")] public Transform BodyMesh;
         public Transform[] FrontWheels = new Transform[2];
         public Transform[] RearWheels = new Transform[2];
 
         [HideInInspector] public Vector3 carVelocity;
         [HideInInspector] public bool allowAutoAlign = true;
 
-        [Range(0, 10)]
-        public float BodyTilt = 2f;
+        [Range(0, 10)] public float BodyTilt = 2f;
 
-        [Header("Audio settings")]
-        public AudioSource engineSound;
+        [Header("Audio settings")] public AudioSource engineSound;
         [Range(0, 1)] public float minPitch = 0.8f;
         [Range(1, 3)] public float MaxPitch = 2f;
         public AudioSource SkidSound;
 
         [HideInInspector] public float skidWidth;
 
-        [Header("Input override (AI)")]
-        [Tooltip("If true, movement uses override values instead of player Input axes")]
-        public bool overrideInput = false;
+        [Header("Input override (AI)")] public bool overrideInput = false;
         [Range(-1f, 1f)] public float overrideHorizontal = 0f;
         [Range(-1f, 1f)] public float overrideVertical = 0f;
         [Range(0f, 1f)] public float overrideJump = 0f;
 
-        [Header("Wall Ride")]
+        [Header("Wall Ride")] [SerializeField] private CameraOffsetController _cameraOffsetController;
         [SerializeField] private bool enableWallRide = true;
         [SerializeField] private LayerMask wallRideLayer;
         [SerializeField] private float wallCheckDistance = 3.5f;
         [SerializeField] private float wallRideDuration = 2.5f;
 
-        [Header("Wall Ride Entry")]
-        [SerializeField] private float wallLaunchUpImpulse = 7f;
+        [Header("Wall Ride Entry")] [SerializeField]
+        private float wallLaunchUpImpulse = 50f;
+
         [SerializeField] private float wallLaunchToWallImpulse = 4f;
         [SerializeField] private float wallLaunchForwardImpulse = 5f;
         [SerializeField] private float wallAttachDelay = 0.18f;
 
-        [Header("Wall Ride Stick")]
-        [SerializeField] private float wallStickForce = 35f;
+        [Header("Wall Ride Entry - Forward Wall")] [SerializeField]
+        private float forwardWallAlignSpeed = 15f;
+
+        [SerializeField] private float forwardWallInitialBlend = 0.5f;
+
+        [Header("Wall Ride Stick")] [SerializeField]
+        private float wallStickForce = 35f;
+
         [SerializeField] private float wallGravityCompensation = 12f;
         [SerializeField] private float wallAlignSpeed = 10f;
         [SerializeField] private float wallDetachCooldown = 0.15f;
+
+        [Header("Wall Ride FX")] [SerializeField]
+        private ParticleSystem wallRideEnterEffect;
+
+        [SerializeField] private ParticleSystem wallRideLoopEffect;
+        [SerializeField] private ParticleSystem wallRideExitEffect;
 
         private float radius;
         private float horizontalInput;
@@ -97,6 +123,7 @@ namespace ArcadeVP
         private SphereCollider _sphereCollider;
 
         private WallRideState _wallRideState = WallRideState.None;
+        private WallApproachType _wallApproachType = WallApproachType.Side;
         private Vector3 _wallNormal = Vector3.up;
         private float _wallRideTimer;
         private float _wallAttachTimer;
@@ -108,6 +135,7 @@ namespace ArcadeVP
         private void Reset()
         {
             rb = GetComponent<Rigidbody>();
+
             if (carBody == null)
                 carBody = rb;
         }
@@ -154,11 +182,17 @@ namespace ArcadeVP
 
             if (movementMode == MovementMode.AngularVelocity)
                 Physics.defaultMaxAngularSpeed = 100f;
+
+            StopWallRideFX();
         }
 
         private void Update()
         {
             ReadInput();
+
+            if (_wallRideState == WallRideState.Riding)
+                UpdateWallLoopFXPosition();
+
             Visuals();
             AudioManager();
         }
@@ -180,25 +214,14 @@ namespace ArcadeVP
             }
 
             if (Mathf.Abs(carVelocity.x) > 0f && frictionMaterial != null && frictionCurve != null)
-            {
                 frictionMaterial.dynamicFriction = frictionCurve.Evaluate(Mathf.Abs(carVelocity.x / 100f));
-            }
 
             UpdateWallRideState();
 
-            if (_wallRideState == WallRideState.Entering)
-            {
-                return;
-            }
-
             if (grounded())
-            {
                 GroundedMovement();
-            }
             else
-            {
                 AirMovement();
-            }
         }
 
         private void ReadInput()
@@ -219,14 +242,16 @@ namespace ArcadeVP
 
         private void UpdateUpVector()
         {
-            if (_wallRideState == WallRideState.Riding)
-            {
-                _currentUp = _wallNormal;
-            }
-            else
-            {
-                _currentUp = Vector3.up;
-            }
+            _currentUp = _wallRideState == WallRideState.None ? Vector3.up : _wallNormal;
+        }
+
+        private bool IsForwardWall(RaycastHit wallHit)
+        {
+            // Check if the wall normal is roughly opposite to the vehicle's forward direction
+            // This means the wall is in front of the vehicle
+            float dotForward = Vector3.Dot(transform.forward, wallHit.normal);
+            // If the wall normal points towards the vehicle (against forward), it's a forward wall
+            return dotForward < -0.5f;
         }
 
         public void TryEnterWallRide(RaycastHit wallHit)
@@ -240,110 +265,166 @@ namespace ArcadeVP
             if (_wallDetachTimer > 0f)
                 return;
 
+            // Determine if this is a forward wall approach
+            bool isForwardWall = IsForwardWall(wallHit);
+            _wallApproachType = isForwardWall ? WallApproachType.Forward : WallApproachType.Side;
+
             _wallNormal = wallHit.normal.normalized;
             _wallRideTimer = wallRideDuration;
             _wallAttachTimer = wallAttachDelay;
             _wallRideState = WallRideState.Entering;
 
             Vector3 velocity = rb.velocity;
-            Vector3 awayFromWall = Vector3.Project(velocity, _wallNormal);
-            rb.velocity = velocity - awayFromWall;
 
-            Vector3 launchImpulse =
-                Vector3.up * wallLaunchUpImpulse +
-                (-_wallNormal) * wallLaunchToWallImpulse +
-                transform.forward * wallLaunchForwardImpulse;
+            if (isForwardWall)
+            {
+                // For forward wall: preserve more forward velocity and reduce side rotation
+                // Remove the component of velocity going into the wall (towards wall normal)
+                Vector3 intoWall = Vector3.Project(velocity, -_wallNormal);
+                // Keep velocity along the wall surface
+                rb.velocity = velocity - intoWall * 0.9f;
 
-            rb.AddForce(launchImpulse, ForceMode.Impulse);
+                // Launch impulse - less side push for forward walls
+                Vector3 launchImpulse =
+                    Vector3.up * wallLaunchUpImpulse +
+                    (-_wallNormal) * (wallLaunchToWallImpulse * 0.5f) + // Reduced side push
+                    transform.forward * (wallLaunchForwardImpulse * 1.5f); // Increased forward push
+
+                rb.AddForce(launchImpulse, ForceMode.Impulse);
+            }
+            else
+            {
+                // Original side wall behavior
+                Vector3 awayFromWall = Vector3.Project(velocity, _wallNormal);
+                rb.velocity = velocity - awayFromWall;
+
+                Vector3 launchImpulse =
+                    Vector3.up * wallLaunchUpImpulse +
+                    (-_wallNormal) * wallLaunchToWallImpulse +
+                    transform.forward * wallLaunchForwardImpulse;
+
+                rb.AddForce(launchImpulse, ForceMode.Impulse);
+            }
+
+            _cameraOffsetController.EnterWallRide();
+            MoveWallFXToContact(wallHit.point, wallHit.normal);
+
+            if (wallRideEnterEffect != null)
+                wallRideEnterEffect.Play();
         }
 
         private void UpdateWallRideState()
-{
-    if (_wallDetachTimer > 0f)
-        _wallDetachTimer -= Time.fixedDeltaTime;
-
-    if (_wallRideState == WallRideState.None)
-        return;
-
-    _wallRideTimer -= Time.fixedDeltaTime;
-    if (_wallRideTimer <= 0f)
-    {
-        ExitWallRide();
-        return;
-    }
-
-    Vector3 wallRayOrigin = rb.position + Vector3.up * 0.5f;
-
-    bool hasWall = Physics.Raycast(
-        wallRayOrigin,
-        -_wallNormal,
-        out RaycastHit wallHit,
-        wallCheckDistance,
-        wallRideLayer);
-
-    if (hasWall)
-        _wallNormal = wallHit.normal.normalized;
-
-    if (_wallRideState == WallRideState.Entering)
-    {
-        _wallAttachTimer -= Time.fixedDeltaTime;
-
-        float enterT = 1f - Mathf.Exp(-wallAlignSpeed * Time.fixedDeltaTime);
-        UpdateWallRideRotation(enterT);
-
-        if (_wallAttachTimer <= 0f)
         {
+            if (_wallDetachTimer > 0f)
+                _wallDetachTimer -= Time.fixedDeltaTime;
+
+            if (_wallRideState == WallRideState.None)
+                return;
+
+            _wallRideTimer -= Time.fixedDeltaTime;
+
+            if (_wallRideTimer <= 0f)
+            {
+                ExitWallRide();
+                return;
+            }
+
+            Vector3 wallRayOrigin = rb.position + Vector3.up * 0.5f;
+
+            bool hasWall = Physics.Raycast(
+                wallRayOrigin,
+                -_wallNormal,
+                out RaycastHit wallHit,
+                wallCheckDistance,
+                wallRideLayer);
+
+            if (hasWall)
+                _wallNormal = wallHit.normal.normalized;
+
+            if (_wallRideState == WallRideState.Entering)
+            {
+                _wallAttachTimer -= Time.fixedDeltaTime;
+
+                if (_wallApproachType == WallApproachType.Forward)
+                {
+                    UpdateWallRideRotationForward();
+                }
+                else
+                {
+                    UpdateWallRideRotation(0.35f);
+                }
+
+                if (_wallAttachTimer <= 0f)
+                {
+                    if (!hasWall)
+                    {
+                        ExitWallRide();
+                        return;
+                    }
+
+                    _wallRideState = WallRideState.Riding;
+
+                    if (wallRideLoopEffect != null && !wallRideLoopEffect.isPlaying)
+                        wallRideLoopEffect.Play();
+                }
+
+                return;
+            }
+
             if (!hasWall)
             {
                 ExitWallRide();
                 return;
             }
 
-            _wallRideState = WallRideState.Riding;
+            rb.AddForce(-_wallNormal * wallStickForce * rb.mass, ForceMode.Force);
+            rb.AddForce(_currentUp * wallGravityCompensation * rb.mass, ForceMode.Force);
+
+            UpdateWallRideRotation(1f);
         }
 
-        return;
-    }
-
-    // Фаза езды по стене
-    if (!hasWall)
-    {
-        ExitWallRide();
-        return;
-    }
-
-    // Прижимаем к стене
-    rb.AddForce(-_wallNormal * wallStickForce * rb.mass, ForceMode.Force);
-
-    // Компенсируем сползание вниз.
-    // Важно: используем Vector3.up, а не _currentUp,
-    // потому что _currentUp на стене = normal стены.
-    rb.AddForce(Vector3.up * wallGravityCompensation * rb.mass, ForceMode.Force);
-
-    // Минимальная скорость вдоль стены, чтобы машина не начала сразу скользить вниз
-    Vector3 wallForward = Vector3.ProjectOnPlane(carBody.transform.forward, _wallNormal).normalized;
-
-    if (wallForward.sqrMagnitude > 0.001f)
-    {
-        Vector3 velocityOnWall = Vector3.ProjectOnPlane(rb.velocity, _wallNormal);
-        float forwardSpeed = Vector3.Dot(velocityOnWall, wallForward);
-
-        float minWallSpeed = 8f;
-
-        if (forwardSpeed < minWallSpeed)
+        /// <summary>
+        /// Special rotation handling for forward wall rides - prevents the vehicle from turning sideways
+        /// </summary>
+        private void UpdateWallRideRotationForward()
         {
-            Vector3 targetVelocity = velocityOnWall + wallForward * (minWallSpeed - forwardSpeed);
+            // For forward walls, prioritize keeping the vehicle facing forward along the wall
+            Vector3 wallRight = Vector3.Cross(_wallNormal, Vector3.up).normalized;
 
-            rb.velocity = Vector3.MoveTowards(
-                rb.velocity,
-                targetVelocity,
-                25f * Time.fixedDeltaTime);
+            if (wallRight.sqrMagnitude < 0.001f)
+            {
+                // Wall is a ceiling/floor - fallback
+                wallRight = transform.right;
+            }
+
+            // Project the vehicle's forward direction onto the wall plane
+            Vector3 projectedForward = Vector3.ProjectOnPlane(transform.forward, _wallNormal).normalized;
+
+            if (projectedForward.sqrMagnitude < 0.001f)
+            {
+                // If forward is directly into the wall, use the wall's right direction as forward
+                projectedForward = wallRight;
+            }
+
+            // Calculate the target up direction (wall normal)
+            Vector3 targetUp = Vector3.Slerp(transform.up, _wallNormal, forwardWallInitialBlend);
+
+            // Create target rotation that keeps the vehicle facing along the wall rather than sideways
+            Quaternion targetRotation = Quaternion.LookRotation(projectedForward, targetUp);
+
+            rb.MoveRotation(Quaternion.Slerp(
+                rb.rotation,
+                targetRotation,
+                forwardWallAlignSpeed * Time.fixedDeltaTime));
+
+            if (carBody != null && carBody != rb)
+            {
+                carBody.MoveRotation(Quaternion.Slerp(
+                    carBody.rotation,
+                    targetRotation,
+                    forwardWallAlignSpeed * Time.fixedDeltaTime));
+            }
         }
-    }
-
-    float rideT = 1f - Mathf.Exp(-wallAlignSpeed * Time.fixedDeltaTime);
-    UpdateWallRideRotation(rideT);
-}
 
         private void UpdateWallRideRotation(float blendToWall)
         {
@@ -355,12 +436,10 @@ namespace ArcadeVP
             Vector3 targetUp = Vector3.Slerp(transform.up, _currentUp, blendToWall);
             Quaternion targetRotation = Quaternion.LookRotation(projectedForward, targetUp);
 
-            float t = 1f - Mathf.Exp(-wallAlignSpeed * Time.fixedDeltaTime);
-
             rb.MoveRotation(Quaternion.Slerp(
                 rb.rotation,
                 targetRotation,
-                t));
+                wallAlignSpeed * Time.fixedDeltaTime));
 
             if (carBody != null && carBody != rb)
             {
@@ -373,7 +452,18 @@ namespace ArcadeVP
 
         private void ExitWallRide()
         {
+            if (wallRideLoopEffect != null)
+                wallRideLoopEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+
+            _cameraOffsetController.ExitWallRide();
+            Vector3 exitPos = rb.position + (-_wallNormal * 0.8f);
+            MoveExitFX(exitPos, _wallNormal);
+
+            if (wallRideExitEffect != null)
+                wallRideExitEffect.Play();
+
             _wallRideState = WallRideState.None;
+            _wallApproachType = WallApproachType.Side;
             _currentUp = Vector3.up;
             _wallDetachTimer = wallDetachCooldown;
         }
@@ -392,13 +482,9 @@ namespace ArcadeVP
             Vector3 torqueAxis = _currentUp;
 
             if (verticalInput > 0.1f || carVelocity.z > 1f)
-            {
                 carBody.AddTorque(torqueAxis * horizontalInput * sign * turn * 100f * turnMultiplier);
-            }
             else if (verticalInput < -0.1f || carVelocity.z < -1f)
-            {
                 carBody.AddTorque(torqueAxis * horizontalInput * sign * turn * 100f * turnMultiplier);
-            }
 
             if (!kartLike)
             {
@@ -414,6 +500,7 @@ namespace ArcadeVP
             }
 
             Vector3 driveForward = Vector3.ProjectOnPlane(carBody.transform.forward, _currentUp).normalized;
+
             if (driveForward.sqrMagnitude < 0.001f)
                 driveForward = transform.forward;
 
@@ -469,7 +556,10 @@ namespace ArcadeVP
                     0.02f));
             }
 
-            rb.AddForce(-_currentUp * gravity, ForceMode.Acceleration);
+            rb.velocity = Vector3.Lerp(
+                rb.velocity,
+                rb.velocity - _currentUp * gravity,
+                Time.deltaTime * gravity);
         }
 
         public void AudioManager()
@@ -483,9 +573,7 @@ namespace ArcadeVP
             }
 
             if (SkidSound != null)
-            {
                 SkidSound.mute = !(Mathf.Abs(carVelocity.x) > 10f && grounded());
-            }
         }
 
         public void Visuals()
@@ -572,15 +660,16 @@ namespace ArcadeVP
 
             origin = rb.position + _sphereCollider.radius * _currentUp;
             Vector3 direction = -_currentUp;
-            float maxDistance = _sphereCollider.radius + 0.2f;
+            float maxDistance = groundCheckDistance;
 
             LayerMask groundMask = drivableSurface;
+
             if (_wallRideState != WallRideState.None)
                 groundMask |= wallRideLayer;
 
             if (GroundCheck == groundCheck.rayCast)
             {
-                if (Physics.Raycast(rb.position, direction, out hit, maxDistance, groundMask))
+                if (Physics.Raycast(origin, direction, out hit, maxDistance, groundMask))
                 {
                     _isWallRideSurfaceUnderVehicle = ((1 << hit.collider.gameObject.layer) & wallRideLayer) != 0;
                     OnGrounded?.Invoke(true);
@@ -591,9 +680,16 @@ namespace ArcadeVP
                 OnGrounded?.Invoke(false);
                 return false;
             }
-            else if (GroundCheck == groundCheck.sphereCaste)
+
+            if (GroundCheck == groundCheck.sphereCaste)
             {
-                if (Physics.SphereCast(origin, radius + 0.1f, direction, out hit, maxDistance, groundMask))
+                if (Physics.SphereCast(
+                        origin,
+                        radius + sphereCastExtraRadius,
+                        direction,
+                        out hit,
+                        maxDistance,
+                        groundMask))
                 {
                     _isWallRideSurfaceUnderVehicle = ((1 << hit.collider.gameObject.layer) & wallRideLayer) != 0;
                     OnGrounded?.Invoke(true);
@@ -610,31 +706,81 @@ namespace ArcadeVP
             return false;
         }
 
+        private void MoveWallFXToContact(Vector3 hitPoint, Vector3 wallNormal)
+        {
+            Quaternion rot = Quaternion.LookRotation(wallNormal);
+
+            if (wallRideEnterEffect != null)
+            {
+                wallRideEnterEffect.transform.position = hitPoint;
+                wallRideEnterEffect.transform.rotation = rot;
+            }
+
+            if (wallRideLoopEffect != null)
+            {
+                wallRideLoopEffect.transform.position = hitPoint;
+                wallRideLoopEffect.transform.rotation = rot;
+            }
+        }
+
+        private void UpdateWallLoopFXPosition()
+        {
+            if (wallRideLoopEffect == null)
+                return;
+
+            Vector3 pos = rb.position + (-_wallNormal * 0.9f);
+
+            wallRideLoopEffect.transform.position = pos;
+            wallRideLoopEffect.transform.rotation = Quaternion.LookRotation(_wallNormal);
+        }
+
+        private void MoveExitFX(Vector3 pos, Vector3 wallNormal)
+        {
+            if (wallRideExitEffect == null)
+                return;
+
+            wallRideExitEffect.transform.position = pos;
+            wallRideExitEffect.transform.rotation = Quaternion.LookRotation(wallNormal);
+        }
+
+        private void StopWallRideFX()
+        {
+            if (wallRideEnterEffect != null)
+                wallRideEnterEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            if (wallRideLoopEffect != null)
+                wallRideLoopEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            if (wallRideExitEffect != null)
+                wallRideExitEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+
         private void OnDrawGizmos()
         {
             if (rb == null)
                 return;
 
             SphereCollider sphere = rb.GetComponent<SphereCollider>();
+
             if (sphere == null)
                 return;
 
-            radius = sphere.radius;
-            float width = 0.02f;
+            Vector3 upDir = Application.isPlaying ? _currentUp : Vector3.up;
+            Vector3 groundOrigin = rb.position + sphere.radius * upDir;
+            Vector3 groundEnd = groundOrigin + (-upDir * groundCheckDistance);
 
-            if (!Application.isPlaying)
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLine(groundOrigin, groundEnd);
+            Gizmos.DrawWireSphere(groundEnd, 0.08f);
+
+            if (Application.isPlaying && _wallRideState != WallRideState.None)
             {
-                Gizmos.color = Color.yellow;
-                Gizmos.DrawWireCube(
-                    rb.transform.position + ((radius + width) * Vector3.down),
-                    new Vector3(2f * radius, 2f * width, 4f * radius));
+                Vector3 wallOrigin = rb.position + Vector3.up * 0.5f;
+                Vector3 wallEnd = wallOrigin + (-_wallNormal * wallCheckDistance);
 
-                BoxCollider box = GetComponent<BoxCollider>();
-                if (box != null)
-                {
-                    Gizmos.color = Color.green;
-                    Gizmos.DrawWireCube(transform.position, box.size);
-                }
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawLine(wallOrigin, wallEnd);
+                Gizmos.DrawWireSphere(wallEnd, 0.08f);
             }
         }
     }

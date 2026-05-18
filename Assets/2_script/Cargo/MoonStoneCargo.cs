@@ -14,7 +14,7 @@ public class MoonStoneCargo : Cargo
             return;
         }
 
-        player.SetGravityMultiplier(gravityMultiplier);
+        player.AddGravityMultiplier(gravityMultiplier);
     }
 
     public override void OnDeliver(Player player)
@@ -35,6 +35,6 @@ public class MoonStoneCargo : Cargo
             return;
         }
 
-        player.SetGravityMultiplier(1f);
+        player.RemoveGravityMultiplier(gravityMultiplier);
     }
 }

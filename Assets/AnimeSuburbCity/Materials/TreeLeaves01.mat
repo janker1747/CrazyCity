@@ -87,7 +87,7 @@ Material:
     m_Colors:
     - _BotColor: {r: 0.8679245, g: 0.33513352, b: 0.25792095, a: 1}
     - _Color: {r: 0.20242429, g: 1, b: 0, a: 1}
-    - _TopColor: {r: 0.9254902, g: 0.67086256, b: 0.2666667, a: 1}
+    - _TopColor: {r: 1, g: 0.10849059, b: 0.83715427, a: 1}
     - _WindDirection: {r: 5, g: 5, b: 0, a: 0}
   m_BuildTextureStacks: []
 --- !u!114 &5738509072622443304

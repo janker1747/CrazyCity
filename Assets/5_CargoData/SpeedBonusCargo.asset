@@ -15,5 +15,9 @@ MonoBehaviour:
   cargoName: Speed Bonus
   icon: {fileID: 21300030, guid: 7ab74e659e1f0a34d9cfec21c478fc12, type: 3}
   maxValue: 500
+  hasDeliveryTimer: 1
   deliveryTime: 40
+  comboAmount: 1
+  pickupParticlePrefab: {fileID: 0}
+  pickupSound: {fileID: 0}
   minValueMultiplier: 0.25

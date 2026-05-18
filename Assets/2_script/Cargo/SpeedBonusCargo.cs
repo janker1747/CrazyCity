@@ -4,7 +4,7 @@ using UnityEngine;
 public class SpeedBonusCargo : Cargo
 {
     [Header("Speed Bonus")]
-    [SerializeField, Range(0f, 1f)] private float minValueMultiplier = 0.25f;
+    [SerializeField, Range(0f, 1f)] private float minValueMultiplier = 0.5f;
 
     public override int CalculateValue(float elapsedTime, float damageMultiplier)
     {

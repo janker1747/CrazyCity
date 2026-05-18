@@ -1,10 +1,11 @@
 using System.Collections.Generic;
+using _2_script;
 using UnityEngine;
 
 public class CargoManager : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private MapGrid mapGrid;
+    [SerializeField] private Transform deliverySpawnPoint;
     [SerializeField] private DeliveryPoint deliveryPointPrefab;
 
     [Header("Delivery Distance")]
@@ -13,7 +14,7 @@ public class CargoManager : MonoBehaviour
     [SerializeField, Min(0f)] private float surfaceOffset = 0.2f;
 
     private DeliveryPoint activeDeliveryPoint;
-    private MapGrid.Cell activeCell;
+    private MapGrids.Cell activeCell;
 
     public DeliveryPoint ActiveDeliveryPoint => activeDeliveryPoint;
 
@@ -25,9 +26,9 @@ public class CargoManager : MonoBehaviour
             return null;
         }
 
-        if (mapGrid == null)
+        if (deliverySpawnPoint == null)
         {
-            Debug.LogWarning($"{nameof(CargoManager)} on {name}: MapGrid is not assigned.");
+            Debug.LogWarning($"{nameof(CargoManager)} on {name}: Delivery spawn point is not assigned.");
             return null;
         }
 
@@ -38,24 +39,14 @@ public class CargoManager : MonoBehaviour
         }
 
         if (activeDeliveryPoint != null)
-        {
-            Debug.LogWarning($"{nameof(CargoManager)} on {name}: active delivery point already exists.");
-            return null;
-        }
+            return activeDeliveryPoint;
 
-        MapGrid.Cell cell = ChooseRandomFreeCell(playerPosition);
-        if (cell == null)
-            return null;
+        activeDeliveryPoint = Instantiate(
+            deliveryPointPrefab,
+            deliverySpawnPoint.position,
+            deliverySpawnPoint.rotation);
 
-        Vector3 normal = cell.normal.sqrMagnitude > 0.001f ? cell.normal.normalized : Vector3.up;
-        Vector3 spawnPosition = cell.position + normal * surfaceOffset;
-        Quaternion spawnRotation = Quaternion.FromToRotation(Vector3.up, normal);
-
-        activeDeliveryPoint = Instantiate(deliveryPointPrefab, spawnPosition, spawnRotation);
         activeDeliveryPoint.Init(player);
-
-        activeCell = cell;
-        activeCell.occupied = true;
 
         return activeDeliveryPoint;
     }
@@ -72,48 +63,5 @@ public class CargoManager : MonoBehaviour
             Destroy(activeDeliveryPoint.gameObject);
 
         activeDeliveryPoint = null;
-    }
-
-    private MapGrid.Cell ChooseRandomFreeCell(Vector3 playerPosition)
-    {
-        IReadOnlyList<MapGrid.Cell> cells = mapGrid.Cells;
-        if (cells == null || cells.Count == 0)
-        {
-            Debug.LogWarning($"{nameof(CargoManager)} on {name}: MapGrid has no baked cells.");
-            return null;
-        }
-
-        float minDistance = Mathf.Min(minDeliveryDistance, maxDeliveryDistance);
-        float maxDistance = Mathf.Max(minDeliveryDistance, maxDeliveryDistance);
-
-        if (!Mathf.Approximately(minDistance, minDeliveryDistance))
-            Debug.LogWarning($"{nameof(CargoManager)} on {name}: min/max delivery distance were swapped for this selection.");
-
-        float minSqrDistance = minDistance * minDistance;
-        float maxSqrDistance = maxDistance * maxDistance;
-
-        List<MapGrid.Cell> candidates = new List<MapGrid.Cell>();
-
-        // Distance filtering is the temporary estimate for a 40-50 second route.
-        foreach (MapGrid.Cell cell in cells)
-        {
-            if (cell == null || cell.occupied)
-                continue;
-
-            float sqrDistance = (cell.position - playerPosition).sqrMagnitude;
-            if (sqrDistance < minSqrDistance || sqrDistance > maxSqrDistance)
-                continue;
-
-            candidates.Add(cell);
-        }
-
-        if (candidates.Count == 0)
-        {
-            Debug.LogWarning($"{nameof(CargoManager)} on {name}: no free delivery cells in distance range {minDistance}-{maxDistance}.");
-            return null;
-        }
-
-        int index = Random.Range(0, candidates.Count);
-        return candidates[index];
     }
 }
