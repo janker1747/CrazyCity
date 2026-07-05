@@ -1,10 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using _2_script.Enemy_;
 using UnityEngine;
 using static UnityEngine.Rendering.DebugUI;
 
 public class TimeStopManager : MonoBehaviour
 {
+    [SerializeField] private EnemySpawner _spawner;
+    
     [Header("Visual Effects")]
     [SerializeField] private float _maxThreshold = 0.5f;
     [SerializeField] private string _voronoiParameterKey = "_Voroni_Parameter";
@@ -17,18 +20,15 @@ public class TimeStopManager : MonoBehaviour
     private Dictionary<Rigidbody, MeshRenderer> _renderers = new Dictionary<Rigidbody, MeshRenderer>();
     private Dictionary<Rigidbody, Coroutine> _coroutines = new Dictionary<Rigidbody, Coroutine>();
 
+    private void OnEnable()
+    {
+        _spawner.OnSpawn += Register;
+    }
+
     private void Update()
     {
         if (Input.GetKeyUp(KeyCode.F))
             Freeze();
-
-        if (Input.GetKeyUp(KeyCode.E))
-        {
-            foreach (var car in _DebugCars)
-            {
-                Register(car);
-            }
-        }
 
         if (Input.GetKeyUp(KeyCode.G))
             Unfreeze();
@@ -42,10 +42,10 @@ public class TimeStopManager : MonoBehaviour
         }
     }
 
-    public void Register(Rigidbody rb)
+    public void Register(Enemy enemy)
     {
-        if (rb == null || _rigidbodies.Contains(rb)) return;
-
+        Rigidbody rb = enemy.GetComponent<Rigidbody>();
+        
         _rigidbodies.Add(rb);
 
         Transform[] children = rb.GetComponentsInChildren<Transform>();
@@ -61,7 +61,7 @@ public class TimeStopManager : MonoBehaviour
                     _renderers[rb] = renderer;
                 }
 
-                break; // нашли — дальше не ищем
+                break; 
             }
         }
     }
@@ -124,5 +124,12 @@ public class TimeStopManager : MonoBehaviour
 
             StartFade(rb, _maxThreshold, 0f);
         }
+        
+        _spawner.OnSpawn -= Register;
+    }
+    
+    private void OnDestroy()
+    {
+        _rigidbodies.Clear();
     }
 }

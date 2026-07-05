@@ -15,6 +15,7 @@ public class PlayerCargoModule : MonoBehaviour
     [SerializeField] private ParticleSystem failParticle;
 
     [Header("Success Sequence")]
+    [Header("Success Sequence")]
     [SerializeField] private float successInterval = 0.05f;
     [SerializeField] private AudioClip successSound;
     [SerializeField] private ParticleSystem successParticle;
@@ -26,35 +27,30 @@ public class PlayerCargoModule : MonoBehaviour
     private AnimationCurve comboBonusCurve =
         AnimationCurve.EaseInOut(1f, 1f, 10f, 3f);
 
+    private readonly CargoBaggage baggage = new();
+
     private Player player;
     private CargoManager cargoManager;
     private DeliveryPoint currentDeliveryPoint;
-    private Health cargoHealth;
+    private bool InHaveHealCargo;
     
-    private readonly List<ActiveCargo> activeCargos = new();
-
     private bool isFailSequenceRunning;
     private bool isSuccessSequenceRunning;
-    private bool isHealthActivate;
-
-    private int currentComboAmount;
 
     public event Action<ActiveCargo> CargoAdded;
     public event Action<ActiveCargo> CargoRemoved;
+    public event Action CargoOrderChanged;
     public event Action<int> ComboChanged;
 
-    public IReadOnlyList<ActiveCargo> ActiveCargos => activeCargos;
+    public IReadOnlyList<ActiveCargo> ActiveCargos => baggage.ActiveCargos;
 
-    public Cargo CurrentCargo =>
-        activeCargos.Count > 0
-            ? activeCargos[0].Cargo
-            : null;
+    public Cargo CurrentCargo => baggage.CurrentCargo != null
+        ? baggage.CurrentCargo.Cargo
+        : null;
 
-    public bool HasActiveCargo => activeCargos.Count > 0;
-
-    public int ActiveCargoCount => activeCargos.Count;
-
-    public int CurrentComboAmount => currentComboAmount;
+    public bool HasActiveCargo => baggage.Count > 0;
+    public int ActiveCargoCount => baggage.Count;
+    public int CurrentComboAmount => baggage.CurrentComboAmount;
 
     public bool CanTakeCargo =>
         !isFailSequenceRunning &&
@@ -68,35 +64,36 @@ public class PlayerCargoModule : MonoBehaviour
         player = owner;
         cargoManager = manager;
         cargoArrowUI = arrowUI;
-        cargoHealth = new Health();
 
         if (cargoArrowUI != null && player != null)
             cargoArrowUI.SetPlayer(player.transform);
 
-        if (cargoUIController != null)
-        {
-            cargoUIController.TimerCompleted -= OnTimerCompleted;
-            cargoUIController.TimerCompleted += OnTimerCompleted;
-        }
+        UnsubscribeBaggageEvents();
+        baggage.Initialize(cargoUIController);
+        SubscribeBaggageEvents();
     }
 
     private void OnDestroy()
     {
-        if (cargoUIController != null)
-            cargoUIController.TimerCompleted -= OnTimerCompleted;
+        UnsubscribeBaggageEvents();
+        baggage.Dispose();
     }
 
     public void Tick(float deltaTime)
     {
-        if (activeCargos.Count == 0)
+        if (baggage.Count == 0)
             return;
 
         if (isFailSequenceRunning || isSuccessSequenceRunning)
             return;
 
         float timerScale = CalculateGlobalTimerScale();
+        baggage.Tick(deltaTime, timerScale);
 
-        cargoUIController?.Tick(deltaTime, timerScale);
+        if (isFailSequenceRunning || isSuccessSequenceRunning)
+            return;
+
+        IReadOnlyList<ActiveCargo> activeCargos = baggage.ActiveCargos;
 
         for (int i = activeCargos.Count - 1; i >= 0; i--)
         {
@@ -107,7 +104,7 @@ public class PlayerCargoModule : MonoBehaviour
 
             if (activeCargo == null || activeCargo.Cargo == null)
             {
-                RemoveCargoAt(i, null);
+                baggage.RemoveCargoAt(i, out _);
                 continue;
             }
 
@@ -165,36 +162,20 @@ public class PlayerCargoModule : MonoBehaviour
             }
         }
 
-        ActiveCargo activeCargo = new ActiveCargo(cargo);
+        ActiveCargo activeCargo = baggage.AddCargo(cargo);
 
-        activeCargos.Add(activeCargo);
-
-        if (cargo.HasDeliveryTimer)
-            cargoUIController?.AddCargoTime(cargo.DeliveryTime);
+        if (activeCargo == null)
+            return false;
 
         cargo.OnPickup(player, this, activeCargo);
-
         cargo.PlayPickupFeedback(player.transform.position);
 
-        CargoAdded?.Invoke(activeCargo);
-
-        NotifyComboChanged();
-
-        if (isHealthActivate == false)
-        {
-            cargoHealth.Initialize(cargo.HealthAmount);
-        }
-        else
-        {
-            cargoHealth.AddHealth(cargo.HealthAmount);
-        }
-        
         return true;
     }
 
     public void CompleteDelivery(bool success)
     {
-        if (activeCargos.Count == 0)
+        if (baggage.Count == 0)
         {
             Debug.LogWarning(
                 $"{nameof(PlayerCargoModule)} on {name}: no cargo to complete.");
@@ -209,7 +190,7 @@ public class PlayerCargoModule : MonoBehaviour
 
     public bool CompleteDelivery(Cargo cargo, bool success)
     {
-        int cargoIndex = FindCargoIndex(cargo);
+        int cargoIndex = baggage.FindCargoIndex(cargo);
 
         if (cargoIndex < 0)
             return false;
@@ -223,7 +204,7 @@ public class PlayerCargoModule : MonoBehaviour
 
     public void FailDelivery()
     {
-        if (activeCargos.Count == 0)
+        if (baggage.Count == 0)
             return;
 
         StartFailSequence();
@@ -238,6 +219,8 @@ public class PlayerCargoModule : MonoBehaviour
     {
         if (isFailSequenceRunning || isSuccessSequenceRunning)
             return;
+
+        IReadOnlyList<ActiveCargo> activeCargos = baggage.ActiveCargos;
 
         for (int i = activeCargos.Count - 1; i >= 0; i--)
         {
@@ -265,6 +248,7 @@ public class PlayerCargoModule : MonoBehaviour
             return damage;
 
         int modifiedDamage = Mathf.Max(0, damage);
+        IReadOnlyList<ActiveCargo> activeCargos = baggage.ActiveCargos;
 
         for (int i = 0; i < activeCargos.Count; i++)
         {
@@ -289,6 +273,8 @@ public class PlayerCargoModule : MonoBehaviour
     {
         if (isFailSequenceRunning || isSuccessSequenceRunning)
             return;
+
+        IReadOnlyList<ActiveCargo> activeCargos = baggage.ActiveCargos;
 
         for (int i = activeCargos.Count - 1; i >= 0; i--)
         {
@@ -315,6 +301,8 @@ public class PlayerCargoModule : MonoBehaviour
         if (player != null && player.HasShield)
             return true;
 
+        IReadOnlyList<ActiveCargo> activeCargos = baggage.ActiveCargos;
+
         for (int i = 0; i < activeCargos.Count; i++)
         {
             ActiveCargo activeCargo = activeCargos[i];
@@ -336,26 +324,23 @@ public class PlayerCargoModule : MonoBehaviour
 
     public int CountCargo(Cargo cargo)
     {
-        if (cargo == null)
-            return 0;
+        return baggage.CountCargo(cargo);
+    }
 
-        int count = 0;
+    public int GetCargoIndex(ActiveCargo activeCargo)
+    {
+        return baggage.IndexOf(activeCargo);
+    }
 
-        for (int i = 0; i < activeCargos.Count; i++)
-        {
-            if (activeCargos[i] != null &&
-                activeCargos[i].Cargo == cargo)
-            {
-                count++;
-            }
-        }
-
-        return count;
+    public bool AreNeighbors(ActiveCargo firstCargo, ActiveCargo secondCargo)
+    {
+        return baggage.AreNeighbors(firstCargo, secondCargo);
     }
 
     public void SetDamageMultiplier(float multiplier)
     {
         float safeMultiplier = Mathf.Clamp01(multiplier);
+        IReadOnlyList<ActiveCargo> activeCargos = baggage.ActiveCargos;
 
         for (int i = 0; i < activeCargos.Count; i++)
             activeCargos[i].DamageMultiplier = safeMultiplier;
@@ -363,20 +348,23 @@ public class PlayerCargoModule : MonoBehaviour
 
     public bool SetDamageMultiplier(Cargo cargo, float multiplier)
     {
-        int cargoIndex = FindCargoIndex(cargo);
+        int cargoIndex = baggage.FindCargoIndex(cargo);
 
         if (cargoIndex < 0)
             return false;
 
-        activeCargos[cargoIndex].DamageMultiplier =
-            Mathf.Clamp01(multiplier);
+        ActiveCargo activeCargo = baggage.GetCargoAt(cargoIndex);
+        if (activeCargo == null)
+            return false;
+
+        activeCargo.DamageMultiplier = Mathf.Clamp01(multiplier);
 
         return true;
     }
 
     public bool TryFailCargo(ActiveCargo activeCargo)
     {
-        int index = activeCargos.IndexOf(activeCargo);
+        int index = baggage.IndexOf(activeCargo);
 
         if (index < 0)
             return false;
@@ -388,17 +376,21 @@ public class PlayerCargoModule : MonoBehaviour
         return true;
     }
 
-    private void OnTimerCompleted()
+    public bool TakeDamage(int damage)
     {
-        StartFailSequence();
+        InHaveHealCargo = baggage.TakeHealthDamage(damage);
+    
+        return InHaveHealCargo;
     }
 
     private void StartFailSequence()
     {
-        if (isFailSequenceRunning)
-            return;
+        StartFailSequence(null);
+    }
 
-        StartCoroutine(FailSequenceCoroutine());
+    private void StartFailSequence(IReadOnlyList<ActiveCargo> cargos)
+    {
+        StartCoroutine(FailSequenceCoroutine(cargos));
     }
 
     private void StartSuccessSequence()
@@ -409,28 +401,50 @@ public class PlayerCargoModule : MonoBehaviour
         StartCoroutine(SuccessSequenceCoroutine());
     }
 
-    private IEnumerator FailSequenceCoroutine()
+    private IEnumerator FailSequenceCoroutine(IReadOnlyList<ActiveCargo> cargos)
     {
         isFailSequenceRunning = true;
 
         float currentDelay = failInterval;
 
-        while (activeCargos.Count > 0)
+        if (cargos == null)
         {
-            int lastIndex = activeCargos.Count - 1;
-
-            ActiveCargo activeCargo = activeCargos[lastIndex];
-
-            if (activeCargo != null && activeCargo.Cargo != null)
+            while (baggage.Count > 0)
             {
-                PlayCargoFailFeedback();
+                int lastIndex = baggage.Count - 1;
+                ActiveCargo activeCargo = baggage.GetCargoAt(lastIndex);
+
+                if (activeCargo != null && activeCargo.Cargo != null)
+                    PlayCargoFailFeedback();
 
                 CompleteCargoAt(lastIndex, false, false);
+
+                yield return new WaitForSeconds(currentDelay);
+
+                currentDelay *= 0.9f;
             }
+        }
+        else
+        {
+            List<ActiveCargo> expiredCargos = new(cargos);
 
-            yield return new WaitForSeconds(currentDelay);
+            for (int i = expiredCargos.Count - 1; i >= 0; i--)
+            {
+                ActiveCargo activeCargo = expiredCargos[i];
+                int cargoIndex = baggage.IndexOf(activeCargo);
 
-            currentDelay *= 0.9f;
+                if (cargoIndex < 0)
+                    continue;
+
+                if (activeCargo != null && activeCargo.Cargo != null)
+                    PlayCargoFailFeedback();
+
+                CompleteCargoAt(cargoIndex, false, false);
+
+                yield return new WaitForSeconds(currentDelay);
+
+                currentDelay *= 0.9f;
+            }
         }
 
         RefreshDeliveryState();
@@ -442,17 +456,16 @@ public class PlayerCargoModule : MonoBehaviour
     {
         isSuccessSequenceRunning = true;
 
-        int deliveredCargoCount = activeCargos.Count;
+        int deliveredCargoCount = baggage.Count;
 
         float rewardMultiplier = CalculateGlobalRewardMultiplier();
 
         float currentDelay = successInterval;
 
-        while (activeCargos.Count > 0)
+        while (baggage.Count > 0)
         {
-            int lastIndex = activeCargos.Count - 1;
-
-            ActiveCargo activeCargo = activeCargos[lastIndex];
+            int lastIndex = baggage.Count - 1;
+            ActiveCargo activeCargo = baggage.GetCargoAt(lastIndex);
 
             if (activeCargo != null &&
                 activeCargo.Cargo != null)
@@ -460,14 +473,13 @@ public class PlayerCargoModule : MonoBehaviour
                 PlayCargoSuccessFeedback();
 
                 activeCargo.Cargo.OnDeliver(player);
+                activeCargo.Cargo.HealthGargoDelivered += player.Health.AddHealth;
+                GameData.Instance.AddCargo(activeCargo.Cargo);
 
                 int reward =
-                    Mathf.RoundToInt(
-                        activeCargo.Cargo.CalculateValue(
-                            player,
-                            this,
-                            activeCargo)
-                        * rewardMultiplier);
+                    CalculateReward(
+                        activeCargo,
+                        rewardMultiplier);
 
                 if (reward > 0 &&
                     player != null &&
@@ -475,10 +487,11 @@ public class PlayerCargoModule : MonoBehaviour
                 {
                     player.ScoreSystem.AddScore(reward);
                 }
-
-                RemoveCargoAt(lastIndex, activeCargo);
             }
 
+            baggage.RemoveCargoAt(lastIndex, out _);
+            
+            activeCargo.Cargo.HealthGargoDelivered -= player.Health.AddHealth;
             yield return new WaitForSeconds(currentDelay);
 
             currentDelay *= 0.92f;
@@ -550,12 +563,8 @@ public class PlayerCargoModule : MonoBehaviour
         bool success,
         bool useComboReward)
     {
-        if (cargoIndex < 0 || cargoIndex >= activeCargos.Count)
+        if (!baggage.RemoveCargoAt(cargoIndex, out ActiveCargo activeCargo))
             return;
-
-        ActiveCargo activeCargo = activeCargos[cargoIndex];
-
-        RemoveCargoAt(cargoIndex, activeCargo);
 
         if (activeCargo == null || activeCargo.Cargo == null)
             return;
@@ -563,13 +572,9 @@ public class PlayerCargoModule : MonoBehaviour
         if (success)
         {
             activeCargo.Cargo.OnDeliver(player);
+            GameData.Instance.AddCargo(activeCargo.Cargo);
 
-            int reward = Mathf.Max(
-                0,
-                activeCargo.Cargo.CalculateValue(
-                    player,
-                    this,
-                    activeCargo));
+            int reward = CalculateReward(activeCargo, 1f);
 
             if (useComboReward)
                 reward *= Mathf.Max(1, activeCargo.ComboAmount);
@@ -587,43 +592,10 @@ public class PlayerCargoModule : MonoBehaviour
         }
     }
 
-    private void RemoveCargoAt(
-        int cargoIndex,
-        ActiveCargo activeCargo)
-    {
-        if (cargoIndex < 0 || cargoIndex >= activeCargos.Count)
-            return;
-
-        if (activeCargo == null)
-            activeCargo = activeCargos[cargoIndex];
-
-        activeCargos.RemoveAt(cargoIndex);
-
-        CargoRemoved?.Invoke(activeCargo);
-
-        NotifyComboChanged();
-    }
-
-    private int FindCargoIndex(Cargo cargo)
-    {
-        if (cargo == null)
-            return -1;
-
-        for (int i = 0; i < activeCargos.Count; i++)
-        {
-            if (activeCargos[i] != null &&
-                activeCargos[i].Cargo == cargo)
-            {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-
     private float CalculateGlobalTimerScale()
     {
         float timerScale = 1f;
+        IReadOnlyList<ActiveCargo> activeCargos = baggage.ActiveCargos;
 
         for (int i = 0; i < activeCargos.Count; i++)
         {
@@ -646,6 +618,7 @@ public class PlayerCargoModule : MonoBehaviour
     private float CalculateGlobalRewardMultiplier()
     {
         float multiplier = 1f;
+        IReadOnlyList<ActiveCargo> activeCargos = baggage.ActiveCargos;
 
         for (int i = 0; i < activeCargos.Count; i++)
         {
@@ -665,29 +638,59 @@ public class PlayerCargoModule : MonoBehaviour
         return multiplier;
     }
 
-    private int CalculateCurrentComboAmount()
+    private int CalculateReward(
+        ActiveCargo targetCargo,
+        float globalMultiplier)
     {
-        int comboAmount = 0;
+        if (targetCargo == null || targetCargo.Cargo == null)
+            return 0;
+
+        int baseReward = Mathf.Max(
+            0,
+            targetCargo.Cargo.CalculateValue(
+                player,
+                this,
+                targetCargo));
+
+        float cargoMultiplier =
+            CalculateRewardMultiplierForCargo(targetCargo);
+
+        return Mathf.RoundToInt(
+            baseReward *
+            Mathf.Max(0f, globalMultiplier) *
+            cargoMultiplier);
+    }
+
+    private float CalculateRewardMultiplierForCargo(
+        ActiveCargo targetCargo)
+    {
+        float multiplier = 1f;
+        IReadOnlyList<ActiveCargo> activeCargos = baggage.ActiveCargos;
 
         for (int i = 0; i < activeCargos.Count; i++)
         {
-            if (activeCargos[i] != null)
-                comboAmount += activeCargos[i].ComboAmount;
+            ActiveCargo sourceCargo = activeCargos[i];
+
+            if (sourceCargo == null ||
+                sourceCargo == targetCargo ||
+                sourceCargo.Cargo == null)
+                continue;
+
+            multiplier *= Mathf.Max(
+                0f,
+                sourceCargo.Cargo.GetRewardMultiplierForCargo(
+                    player,
+                    this,
+                    sourceCargo,
+                    targetCargo));
         }
 
-        return comboAmount;
-    }
-
-    private void NotifyComboChanged()
-    {
-        currentComboAmount = CalculateCurrentComboAmount();
-
-        ComboChanged?.Invoke(currentComboAmount);
+        return multiplier;
     }
 
     private void RefreshDeliveryState()
     {
-        if (activeCargos.Count > 0)
+        if (baggage.Count > 0)
             return;
 
         cargoUIController?.ResetTimer();
@@ -698,5 +701,53 @@ public class PlayerCargoModule : MonoBehaviour
             cargoManager.OnDeliveryFinished();
     }
 
-    public void TakeDamage(int damage) => cargoHealth.TakeDamage(damage);
+    private void SubscribeBaggageEvents()
+    {
+        baggage.CargoAdded += OnCargoAdded;
+        baggage.CargoRemoved += OnCargoRemoved;
+        baggage.CargoOrderChanged += OnCargoOrderChanged;
+        baggage.ComboChanged += OnComboChanged;
+        baggage.TimedCargosExpired += OnTimedCargosExpired;
+        baggage.HealthCargosExpired += OnHealthCargosExpired;
+    }
+
+    private void UnsubscribeBaggageEvents()
+    {
+        baggage.CargoAdded -= OnCargoAdded;
+        baggage.CargoRemoved -= OnCargoRemoved;
+        baggage.CargoOrderChanged -= OnCargoOrderChanged;
+        baggage.ComboChanged -= OnComboChanged;
+        baggage.TimedCargosExpired -= OnTimedCargosExpired;
+        baggage.HealthCargosExpired -= OnHealthCargosExpired;
+    }
+
+    private void OnCargoAdded(ActiveCargo cargo)
+    {
+        CargoAdded?.Invoke(cargo);
+    }
+
+    private void OnCargoRemoved(ActiveCargo cargo)
+    {
+        CargoRemoved?.Invoke(cargo);
+    }
+
+    private void OnCargoOrderChanged()
+    {
+        CargoOrderChanged?.Invoke();
+    }
+
+    private void OnComboChanged(int comboAmount)
+    {
+        ComboChanged?.Invoke(comboAmount);
+    }
+
+    private void OnTimedCargosExpired(IReadOnlyList<ActiveCargo> cargos)
+    {
+        StartFailSequence(cargos);
+    }
+
+    private void OnHealthCargosExpired(IReadOnlyList<ActiveCargo> cargos)
+    {
+        StartFailSequence(cargos);
+    }
 }

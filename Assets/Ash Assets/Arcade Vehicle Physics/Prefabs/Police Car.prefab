@@ -629,7 +629,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7616626608121353999}
-  - component: {fileID: 7616626608121353995}
   - component: {fileID: 7616626608121353996}
   - component: {fileID: 7616626608121353997}
   - component: {fileID: 7616626608121353998}
@@ -655,19 +654,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 7616626608825068464}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7616626608121353995
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7616626608121354000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1337f33b3654d9a4fa8f2d3f24ceb6d2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  carController: {fileID: 7616626608295357075}
 --- !u!96 &7616626608121353996
 TrailRenderer:
   serializedVersion: 3
@@ -5538,6 +5524,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1337f33b3654d9a4fa8f2d3f24ceb6d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  skidMark: {fileID: 7616626608213897605}
+  skidMark2: {fileID: 7616626609229410586}
+  smoke: {fileID: 7616626608213897606}
+  smoke2: {fileID: 7616626609229410587}
   carController: {fileID: 7616626608295357075}
 --- !u!96 &7616626608213897605
 TrailRenderer:
@@ -10377,9 +10367,10 @@ GameObject:
   - component: {fileID: 7616626608295357077}
   - component: {fileID: 7616626608295357078}
   - component: {fileID: 389365996162700377}
-  - component: {fileID: 4682580788579912207}
   - component: {fileID: 191857584811993397}
   - component: {fileID: 1515254399276515107}
+  - component: {fileID: 721025974263850178}
+  - component: {fileID: 6527570625980416736}
   m_Layer: 7
   m_Name: Police Car
   m_TagString: Police
@@ -10438,18 +10429,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   movementMode: 0
-  GroundCheck: 0
+  GroundCheck: 1
   drivableSurface:
     serializedVersion: 2
     m_Bits: 1088
   MaxSpeed: 80
   accelaration: 20
-  turn: 10
+  turn: 8.08
   gravity: 7
   downforce: 5
   AirControl: 0
   kartLike: 0
   driftMultiplier: 1.5
+  groundCheckDistance: 0.8
+  sphereCastExtraRadius: 0.1
   rb: {fileID: 7616626608556651355}
   carBody: {fileID: 7616626608295357076}
   frictionCurve:
@@ -10538,6 +10531,26 @@ MonoBehaviour:
   overrideHorizontal: 0
   overrideVertical: 0
   overrideJump: 0
+  _cameraOffsetController: {fileID: 0}
+  enableWallRide: 1
+  wallRideLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  wallCheckDistance: 3.5
+  wallRideDuration: 2.5
+  wallLaunchUpImpulse: 50
+  wallLaunchToWallImpulse: 4
+  wallLaunchForwardImpulse: 5
+  wallAttachDelay: 0.18
+  forwardWallAlignSpeed: 15
+  forwardWallInitialBlend: 0.5
+  wallStickForce: 35
+  wallGravityCompensation: 12
+  wallAlignSpeed: 10
+  wallDetachCooldown: 0.15
+  wallRideEnterEffect: {fileID: 0}
+  wallRideLoopEffect: {fileID: 0}
+  wallRideExitEffect: {fileID: 0}
 --- !u!54 &7616626608295357076
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -10771,36 +10784,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   target: {fileID: 0}
   vehicleController: {fileID: 7616626608295357075}
-  agent: {fileID: 4682580788579912207}
+  agent: {fileID: 6527570625980416736}
   steeringStrength: 1
   maxForwardInput: 1
   slowDownDistance: 10
   stopDistance: 1.38
+  pathUpdateInterval: 0.2
+  lookAheadCornerIndex: 2
+  steeringSmoothness: 3
   stuckCheckTime: 1.5
-  minMoveDistance: 0.3
+  minMoveDistance: 1
   reverseDuration: 1.2
---- !u!195 &4682580788579912207
-NavMeshAgent:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7616626608295357079}
-  m_Enabled: 1
-  m_AgentTypeID: 0
-  m_Radius: 6.05
-  m_Speed: 3.5
-  m_Acceleration: 8
-  avoidancePriority: 50
-  m_AngularSpeed: 120
-  m_StoppingDistance: 0
-  m_AutoTraverseOffMeshLink: 1
-  m_AutoBraking: 1
-  m_AutoRepath: 1
-  m_Height: 2
-  m_BaseOffset: 0
-  m_WalkableMask: 4294967295
-  m_ObstacleAvoidanceType: 4
 --- !u!114 &191857584811993397
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10813,7 +10807,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a87deb38f0ecc8641be03a7fb26f46e2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _damage: 5
+  _damage: 1
+  _ScoreDamage: 100
+  _damageCooldown: 0.5
 --- !u!114 &1515254399276515107
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10827,6 +10823,42 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _impactData: {fileID: 11400000, guid: 527b40fb075c1154f80c22b69ea67f6e, type: 2}
+--- !u!114 &721025974263850178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7616626608295357079}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68752d2007c642b981a2220bf783cec2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _policeAi: {fileID: 389365996162700377}
+  _policeCollisionHandler: {fileID: 191857584811993397}
+--- !u!195 &6527570625980416736
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7616626608295357079}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 3
+  m_ObstacleAvoidanceType: 4
 --- !u!1 &7616626608556651356
 GameObject:
   m_ObjectHideFlags: 0
@@ -10995,6 +11027,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1337f33b3654d9a4fa8f2d3f24ceb6d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  skidMark: {fileID: 7616626608821732424}
+  skidMark2: {fileID: 7616626608121353996}
+  smoke: {fileID: 7616626608821732425}
+  smoke2: {fileID: 7616626608121353997}
   carController: {fileID: 7616626608295357075}
 --- !u!96 &7616626608821732424
 TrailRenderer:
@@ -15899,7 +15935,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7616626609229410589}
-  - component: {fileID: 7616626609229410585}
   - component: {fileID: 7616626609229410586}
   - component: {fileID: 7616626609229410587}
   - component: {fileID: 7616626609229410588}
@@ -15925,19 +15960,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 7616626608825068464}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7616626609229410585
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7616626609229410590}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1337f33b3654d9a4fa8f2d3f24ceb6d2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  carController: {fileID: 7616626608295357075}
 --- !u!96 &7616626609229410586
 TrailRenderer:
   serializedVersion: 3

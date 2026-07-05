@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public abstract class Cargo : ScriptableObject
@@ -12,17 +13,24 @@ public abstract class Cargo : ScriptableObject
     [SerializeField, Min(0f)] private float deliveryTime;
 
     [SerializeField, Min(1)] private int comboAmount = 1;
+    [SerializeField] private bool hasHealth = true;
     [SerializeField] private int healthAmount = 0;
+
+    [Header("Baggage Order")]
+    [SerializeField] private int baggageOrder;
     
     [Header("Pickup Feedback")]
     [SerializeField] private ParticleSystem pickupParticlePrefab;
     [SerializeField] private AudioClip pickupSound;
 
+    public event Action<float> HealthGargoDelivered;
     public string CargoName => cargoName;
     public Sprite Icon => icon;
     public int MaxValue => maxValue;
 
-    public int HealthAmount => healthAmount;
+    public bool HasHealth => hasHealth && healthAmount > 0;
+    public int HealthAmount => HasHealth ? healthAmount : 0;
+    public int BaggageOrder => baggageOrder;
 
     public bool HasDeliveryTimer => hasDeliveryTimer;
 
@@ -58,7 +66,13 @@ public abstract class Cargo : ScriptableObject
         OnPickup(player);
     }
 
-    public virtual void OnDeliver(Player player) { }
+    public virtual void OnDeliver(Player player)
+    {
+        if (HasHealth)
+        {
+            HealthGargoDelivered?.Invoke(healthAmount);
+        }
+    }
 
     public virtual void OnFail(Player player) { }
 
@@ -74,6 +88,15 @@ public abstract class Cargo : ScriptableObject
     }
 
     public virtual float GetGlobalRewardMultiplier(Player player, PlayerCargoModule cargoModule, ActiveCargo activeCargo)
+    {
+        return 1f;
+    }
+
+    public virtual float GetRewardMultiplierForCargo(
+        Player player,
+        PlayerCargoModule cargoModule,
+        ActiveCargo self,
+        ActiveCargo targetCargo)
     {
         return 1f;
     }

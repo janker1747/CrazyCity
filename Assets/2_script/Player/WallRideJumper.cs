@@ -51,7 +51,13 @@ public class WallRideJumper : MonoBehaviour
             return;
 
         if (Input.GetKeyDown(wallRideKey))
-            TryStartWallRide();
+            RequestStartWallRide();
+    }
+
+    public void RequestStartWallRide()
+    {
+        ScanWalls();
+        TryStartWallRide();
     }
 
     private void ScanWalls()

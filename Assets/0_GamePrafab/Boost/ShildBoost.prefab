@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7916564090423242260}
   - component: {fileID: 7949995304897985711}
   - component: {fileID: 7306453161944761350}
+  - component: {fileID: -8154029854877822241}
   m_Layer: 0
   m_Name: ShildBoost
   m_TagString: Untagged
@@ -106,3 +107,16 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &-8154029854877822241
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1488770989812113646}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5da847babc05f4f48a799be3345d8205, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: 7383c74671838bd46899cc430896caf4, type: 2}

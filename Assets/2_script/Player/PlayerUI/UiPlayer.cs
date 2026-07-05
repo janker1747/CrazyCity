@@ -7,6 +7,7 @@ using UnityEngine.UI;
 
 public class UiPlayer : MonoBehaviour
 {
+    [SerializeField] private CameraScoreFeedback _cameraFeedback;
     [SerializeField] private TMP_Text _text;
     [SerializeField] private TimerUI _timer;
     [SerializeField] private Button _useBoostItem;
@@ -44,6 +45,12 @@ public class UiPlayer : MonoBehaviour
         OnButtonClick?.Invoke();
     }
 
+    private IEnumerator DisableUISpeedBoost()
+    {
+        yield return new WaitForSeconds(0.25f);
+        _cameraFeedback.HideSpeedBoost();  
+    }
+    
     public void HandleBoost(Sprite icon)
     {
         _useBoostItem.gameObject.SetActive(true);
@@ -66,5 +73,11 @@ public class UiPlayer : MonoBehaviour
     {
         int speed = Convert.ToInt32(currentSpeed);
        _text.text = speed.ToString();
+    }
+
+    public void ActivateUiSpeedBoost()
+    { 
+        _cameraFeedback.ShowSpeedBoost();
+        StartCoroutine(DisableUISpeedBoost());
     }
 }

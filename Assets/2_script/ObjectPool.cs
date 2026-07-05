@@ -27,25 +27,25 @@ public class ObjectPool<T> : MonoBehaviour where T : MonoBehaviour
     {
         foreach (T obj in _pool)
         {
-            obj.gameObject.SetActive(true);
-            return obj;
+            if (!obj.gameObject.activeInHierarchy)
+            {
+                obj.transform.SetPositionAndRotation(
+                    spawnPoint.position,
+                    spawnPoint.rotation);
+
+                obj.gameObject.SetActive(true);
+
+                return obj;
+            }
         }
 
-        T newObj = Instantiate(_prefab, spawnPoint);
-        _pool.Add(newObj);
-        return newObj;
-    }
+        T newObj = Instantiate(
+            _prefab,
+            spawnPoint.position,
+            spawnPoint.rotation);
 
-    public T GetObject()
-    {
-        foreach (T obj in _pool)
-        {
-            obj.gameObject.SetActive(true);
-            return obj;
-        }
-
-        T newObj = Instantiate(_prefab);
         _pool.Add(newObj);
+
         return newObj;
     }
 

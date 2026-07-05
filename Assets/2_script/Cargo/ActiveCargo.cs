@@ -9,6 +9,7 @@ public class ActiveCargo
     public float EffectTimer;
     public float SecondaryTimer;
     public int State;
+    public int PickupOrder;
 
     public ActiveCargo(Cargo cargo)
     {
@@ -16,4 +17,5 @@ public class ActiveCargo
     }
 
     public int ComboAmount => Cargo != null ? Mathf.Max(1, Cargo.ComboAmount) : 0;
+    public int BaggageOrder => Cargo != null ? Cargo.BaggageOrder : 0;
 }

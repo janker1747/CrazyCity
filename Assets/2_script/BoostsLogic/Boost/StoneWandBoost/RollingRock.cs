@@ -6,7 +6,9 @@ public class RollingRock : MonoBehaviour
 {
     [SerializeField] private RockTrigger rockTrigger;
 
-    [SerializeField] private float speed;
+    [SerializeField] private float impulseForce = 10f;
+    [SerializeField] private float speed = 10f;
+    [SerializeField] private float torqueForce = 10f;
     [SerializeField] private float lifeTime = 10f;
 
     private Rigidbody _rb;
@@ -22,10 +24,10 @@ public class RollingRock : MonoBehaviour
     {
         _scoreSystem = scoreSystem;
 
-        _rb.AddForce(direction.normalized * speed, ForceMode.Impulse);
-        _rb.AddTorque(Vector3.right * 10f, ForceMode.Impulse);
-
-        // Передаём ScoreSystem в триггер
+        _rb.AddForce(direction.normalized * impulseForce, ForceMode.Impulse);
+        _rb.AddTorque(Random.onUnitSphere * torqueForce, ForceMode.Impulse);
+        _rb.velocity = direction.normalized * speed;
+        
         rockTrigger.Init(scoreSystem, this);
 
         Invoke(nameof(DestroyWithAnimation), lifeTime);
@@ -48,3 +50,4 @@ public class RollingRock : MonoBehaviour
 
     public bool IsDying => _isDying;
 }
+

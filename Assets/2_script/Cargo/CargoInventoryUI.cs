@@ -43,6 +43,7 @@ public class CargoInventoryUI : MonoBehaviour
 
         cargoModule.CargoAdded += AddCargoIcon;
         cargoModule.CargoRemoved += RemoveCargoIcon;
+        cargoModule.CargoOrderChanged += RefreshIconOrder;
         cargoModule.ComboChanged += UpdateCombo;
     }
 
@@ -53,6 +54,7 @@ public class CargoInventoryUI : MonoBehaviour
 
         cargoModule.CargoAdded -= AddCargoIcon;
         cargoModule.CargoRemoved -= RemoveCargoIcon;
+        cargoModule.CargoOrderChanged -= RefreshIconOrder;
         cargoModule.ComboChanged -= UpdateCombo;
     }
 
@@ -77,6 +79,7 @@ public class CargoInventoryUI : MonoBehaviour
             AddCargoIcon(activeCargos[i], false);
 
         UpdateCombo(cargoModule.CurrentComboAmount);
+        RefreshIconOrder();
     }
 
     private void AddCargoIcon(ActiveCargo activeCargo)
@@ -129,5 +132,24 @@ public class CargoInventoryUI : MonoBehaviour
     {
         if (comboText != null)
             comboText.text = comboAmount.ToString();
+    }
+
+    private void RefreshIconOrder()
+    {
+        if (cargoModule == null)
+            return;
+
+        IReadOnlyList<ActiveCargo> activeCargos = cargoModule.ActiveCargos;
+        for (int i = 0; i < activeCargos.Count; i++)
+        {
+            ActiveCargo cargo = activeCargos[i];
+
+            if (cargo == null ||
+                !icons.TryGetValue(cargo, out Image icon) ||
+                icon == null)
+                continue;
+
+            icon.transform.SetSiblingIndex(i);
+        }
     }
 }

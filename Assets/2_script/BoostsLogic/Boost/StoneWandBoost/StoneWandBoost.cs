@@ -51,7 +51,6 @@ public class StoneWandBoost : IEventBoost
     {
         if (_data.rockPrefab == null)
         {
-            Debug.LogWarning("Rock prefab not assigned!");
             return;
         }
 

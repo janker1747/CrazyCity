@@ -14,7 +14,7 @@ public class BallSpawner : MonoBehaviour
         if (_ballPool == null || _spawnPoint == null)
             return;
 
-        Ball ball = _ballPool.GetObject(); 
+        Ball ball = _ballPool.GetObject(_spawnPoint); 
 
         Rigidbody rb = ball.GetComponent<Rigidbody>();
         if (rb == null)

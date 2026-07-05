@@ -242,7 +242,23 @@ namespace ArcadeVP
 
         private void UpdateUpVector()
         {
-            _currentUp = _wallRideState == WallRideState.None ? Vector3.up : _wallNormal;
+            // Wall Ride имеет приоритет
+            if (_wallRideState != WallRideState.None)
+            {
+                _currentUp = Vector3.Slerp(_currentUp, _wallNormal, 0.2f);
+                return;
+            }
+
+            // Если стоим на поверхности — используем её нормаль
+            if (grounded())
+            {
+                _currentUp = Vector3.Slerp(_currentUp, hit.normal, 0.2f);
+            }
+            else
+            {
+                // В воздухе плавно возвращаемся к мировому вверх
+                _currentUp = Vector3.Slerp(_currentUp, Vector3.up, 0.02f);
+            }
         }
 
         private bool IsForwardWall(RaycastHit wallHit)
@@ -464,7 +480,7 @@ namespace ArcadeVP
 
             _wallRideState = WallRideState.None;
             _wallApproachType = WallApproachType.Side;
-            _currentUp = Vector3.up;
+            _currentUp = hit.normal;
             _wallDetachTimer = wallDetachCooldown;
         }
 
@@ -527,10 +543,9 @@ namespace ArcadeVP
 
             rb.AddForce(-_currentUp * downforce * rb.mass, ForceMode.Force);
 
-            carBody.MoveRotation(Quaternion.Slerp(
-                carBody.rotation,
-                Quaternion.FromToRotation(carBody.transform.up, _currentUp) * carBody.transform.rotation,
-                0.12f));
+            Quaternion targetRotation = Quaternion.FromToRotation(carBody.transform.up, _currentUp) *
+                                        carBody.transform.rotation;
+            carBody.MoveRotation(Quaternion.Slerp(carBody.rotation, targetRotation, 6f * Time.fixedDeltaTime));
         }
 
         private void AirMovement()

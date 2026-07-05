@@ -8,7 +8,7 @@ public class CarGameLoader : MonoBehaviour
     [SerializeField] private bool _dontTryLoad = false;
     
     private Player _player;
-
+    
     private void Awake()
     {
         if (_dontTryLoad = true)

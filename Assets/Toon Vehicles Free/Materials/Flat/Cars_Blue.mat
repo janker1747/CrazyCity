@@ -29,7 +29,7 @@ Material:
   m_LightmapFlags: 1
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 1950
   stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
@@ -135,7 +135,7 @@ Material:
     - Parasite_Distance: 0.3
     - _Alpha: 0.5
     - _BUILTIN_QueueControl: 0
-    - _BUILTIN_QueueOffset: 0
+    - _BUILTIN_QueueOffset: -50
     - _BumpScale: 1
     - _ColorMask: 15
     - _Cull: 2
@@ -193,7 +193,7 @@ Material:
     - _SpecularToonSize: 0.25
     - _SpecularToonSmoothness: 0.05
     - _SpecularType: 0
-    - _Speed: 10
+    - _Speed: 1
     - _SpriteFade: 1
     - _SrcBlend: 1
     - _Stencil: 0
@@ -219,7 +219,7 @@ Material:
     - _UseShadowTexture: 0
     - _UseSpecular: 0
     - _VoroniParameter: 0
-    - _Voroni_Parameter: 0.5
+    - _Voroni_Parameter: 0
     - _Within: 1
     - _ZWrite: 1
     - _speed: 1
@@ -239,7 +239,7 @@ Material:
     - _SpecularColor: {r: 0.75, g: 0.75, b: 0.75, a: 1}
     - _Speed: {r: 0, g: 0, b: 0, a: 0}
     - _Tilling: {r: 1, g: 1, b: 0, a: 0}
-    - _VorbisColor: {r: 0, g: 0.8663819, b: 0.9716981, a: 0}
+    - _VorbisColor: {r: 0, g: 0.891129, b: 1, a: 0}
     - _VoronoiTilling: {r: 1, g: 1, b: 0, a: 0}
-    - _Voronoi_Tilling: {r: 0.01, g: 0.01, b: 0, a: 0}
+    - _Voronoi_Tilling: {r: 1, g: 1, b: 0, a: 0}
   m_BuildTextureStacks: []

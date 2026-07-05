@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6338662467655454499}
   - component: {fileID: 3083644617857106234}
   - component: {fileID: 4679080905199844643}
+  - component: {fileID: -4969385593079372202}
   m_Layer: 0
   m_Name: PowerCollisionBoost
   m_TagString: Untagged
@@ -106,3 +107,16 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &-4969385593079372202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5803077547432447214}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5da847babc05f4f48a799be3345d8205, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: 51de78ca712850646afba7ceaa3f777c, type: 2}

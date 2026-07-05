@@ -10,6 +10,7 @@ using UnityEngine;
 [RequireComponent(typeof(UiPlayer))]
 [RequireComponent(typeof(ScoreUI))]
 [RequireComponent(typeof(PlayerCargoModule))]
+[RequireComponent(typeof(PlayerHealth))]
 public class Player : MonoBehaviour
 {
     [SerializeField] private TimeStopManager _stopManager;
@@ -18,6 +19,7 @@ public class Player : MonoBehaviour
     [SerializeField] private ArcadeVehicleController _vehicleController;
     [SerializeField] private UiPlayer _UI;
     [SerializeField] private ScoreUI _scoreUI;
+    [SerializeField] private PlayerHealth _health;
 
     [Header("Cargo")]
     [SerializeField] private PlayerCargoModule _cargoModule;
@@ -44,6 +46,7 @@ public class Player : MonoBehaviour
     public Rigidbody Rigidbody { get; private set; }
     public PlayerCollisionHandler PlayerCollision { get { return _collisionHandler; } }
     public ArcadeVehicleController VehicleController { get { return _vehicleController; } }
+    public PlayerHealth Health { get { EnsureHealth(); return _health; } }
     public PlayerCargoModule CargoModule { get { EnsureCargoModule(); return _cargoModule; } }
     public float CurrentSpeed => Rigidbody != null ? Rigidbody.velocity.magnitude : 0f;
     public bool HasShield { get; private set; }
@@ -70,6 +73,8 @@ public class Player : MonoBehaviour
         EnsureCargoModule();
         if (_cargoModule != null)
             _cargoModule.Initialize(this, _cargoManager, _cargoArrowUI);
+
+        EnsureHealth();
     }
 
     private void OnEnable()
@@ -80,6 +85,10 @@ public class Player : MonoBehaviour
         _vehicleController.OnSpeedChanged += _collisionHandler.SetSpeed;
         BoostSlot.BoostPickUP += _UI.HandleBoost;
         _UI.OnButtonClick += UseBoost;
+
+        EnsureHealth();
+        if (_health != null)
+            _health.HealthEnded += OnHealthEnded;
     }
 
     private void Update()
@@ -108,6 +117,9 @@ public class Player : MonoBehaviour
         _vehicleController.OnSpeedChanged -= _collisionHandler.SetSpeed;
         BoostSlot.BoostPickUP -= _UI.HandleBoost;
         _UI.OnButtonClick -= UseBoost;
+
+        if (_health != null)
+            _health.HealthEnded -= OnHealthEnded;
     }
 
     public void AddSpeed(float Speed)
@@ -125,6 +137,12 @@ public class Player : MonoBehaviour
     public void RemoveScore(int amount)
     {
         ScoreSystem.MinusScore(amount);
+    }
+
+    public void TakeDamage(int amount)
+    {
+        EnsureHealth();
+        _health?.TakeDamage(amount);
     }
 
     public void EnableShield()
@@ -293,5 +311,21 @@ public class Player : MonoBehaviour
             Debug.LogWarning($"{nameof(Player)} on {name}: PlayerCargoModule was missing and was added at runtime.");
             _cargoModule = gameObject.AddComponent<PlayerCargoModule>();
         }
+    }
+
+    private void EnsureHealth()
+    {
+        if (_health != null)
+            return;
+
+        _health = GetComponent<PlayerHealth>();
+
+        if (_health == null)
+            _health = gameObject.AddComponent<PlayerHealth>();
+    }
+
+    private void OnHealthEnded()
+    {
+        GameOverSceneTransition.LoadGameOver();
     }
 }

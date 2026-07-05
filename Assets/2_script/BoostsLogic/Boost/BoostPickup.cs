@@ -1,15 +1,21 @@
 using UnityEngine;
+using _2_script;
 
 class BoostPickup : MonoBehaviour
 {
-    [SerializeField] private BoostData _data;
+    [SerializeField] private BoostData data;
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.TryGetComponent(out Player player))
-        {
-            player.BoostSlot.Set(_data);
-            Destroy(gameObject);
-        }
+        if (!other.TryGetComponent(out Player player))
+            return;
+
+        player.BoostSlot.Set(data);
+        
+        SpawnedWorldObject spawnedObject =
+            GetComponent<SpawnedWorldObject>();
+
+        spawnedObject.Spawner.ReturnSpawnedObject(
+            spawnedObject);
     }
 }

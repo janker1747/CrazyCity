@@ -8,13 +8,17 @@ public class CarSelectionManager : MonoBehaviour
     [SerializeField] private List<CarItemSO> _cars;
 
     private int _currentIndex;
+    private GameData _gameData;
 
     private void Awake()
     {
+        _gameData = GameData.Instance;
+        
         if (Instance == null)
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            SaveCurrentCar();
         }
         else
         {
@@ -28,6 +32,8 @@ public class CarSelectionManager : MonoBehaviour
 
         if (_currentIndex >= _cars.Count)
             _currentIndex = 0;
+
+        SaveCurrentCar();
     }
 
     public void PreviousCar()
@@ -36,6 +42,8 @@ public class CarSelectionManager : MonoBehaviour
 
         if (_currentIndex < 0)
             _currentIndex = _cars.Count - 1;
+
+        SaveCurrentCar();
     }
 
     public CarItemSO GetCurrentCar()
@@ -45,6 +53,15 @@ public class CarSelectionManager : MonoBehaviour
 
     public Player GetPlayerPrefab()
     {
+        SaveCurrentCar();
         return _cars[_currentIndex].PlayerPrefab;
+    }
+
+    private void SaveCurrentCar()
+    {
+        if (_cars == null || _cars.Count == 0)
+            return;
+
+        _gameData.SetCar(_cars[_currentIndex]);
     }
 }

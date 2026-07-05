@@ -7,7 +7,6 @@ public class CargoPickup : MonoBehaviour
     private static readonly List<CargoPickup> activePickups = new();
 
     [SerializeField] private Cargo cargoData;
-    [SerializeField] private bool destroyOnPickup = true;
 
     private Collider pickupCollider;
 
@@ -19,15 +18,8 @@ public class CargoPickup : MonoBehaviour
     {
         pickupCollider = GetComponent<Collider>();
 
-        if (pickupCollider == null)
-        {
-            Debug.LogWarning($"{nameof(CargoPickup)} on {name}: Collider is missing.");
-            return;
-        }
-
         if (!pickupCollider.isTrigger)
         {
-            Debug.LogWarning($"{nameof(CargoPickup)} on {name}: Collider must be a trigger. It was enabled automatically.");
             pickupCollider.isTrigger = true;
         }
     }
@@ -45,22 +37,18 @@ public class CargoPickup : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (cargoData == null)
-        {
-            Debug.LogWarning($"{nameof(CargoPickup)} on {name}: cargo data is not assigned.");
-            return;
-        }
-
         Player player = other.GetComponentInParent<Player>();
+        
         if (player == null)
             return;
 
         if (!player.TryTakeCargo(cargoData))
             return;
 
-        if (destroyOnPickup)
-            Destroy(gameObject);
-        else
-            gameObject.SetActive(false);
+        SpawnedWorldObject spawnedObject =
+            GetComponent<SpawnedWorldObject>();
+
+        spawnedObject.Spawner.ReturnSpawnedObject(
+            spawnedObject);
     }
 }

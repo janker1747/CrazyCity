@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18154c799adde57459717e8385d4cd25, type: 3}
+  m_Name: potion
+  m_EditorClassIdentifier: 
+  cargoName: Potion
+  icon: {fileID: -652584961, guid: 35ccf5bfcd190874b894c57ade42d89e, type: 3}
+  maxValue: 350
+  hasDeliveryTimer: 1
+  deliveryTime: 15
+  comboAmount: 1
+  hasHealth: 0
+  healthAmount: 0
+  baggageOrder: 0
+  pickupParticlePrefab: {fileID: 5880797563141009103, guid: 265d3a5ba69981a4698ceabcedf368b0, type: 3}
+  pickupSound: {fileID: 0}
+  lives: 1

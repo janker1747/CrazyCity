@@ -3,19 +3,33 @@ using _2_script;
 
 public class SpawnedWorldObject : MonoBehaviour
 {
-    private MapGrids.Cell cell;
+    public MapGrids.Cell Cell { get; private set; }
+    public GameObject SourcePrefab { get; private set; }
+    public WorldObjectSpawner.SpawnGroup SpawnGroup { get; private set; }
+    public WorldObjectSpawner Spawner { get; private set; }
 
-    public void Initialize(MapGrids.Cell targetCell)
+    public int PrefabId { get; private set; }
+
+    public void Initialize(
+        MapGrids.Cell targetCell,
+        WorldObjectSpawner targetSpawner,
+        GameObject prefab,
+        WorldObjectSpawner.SpawnGroup group)
     {
-        cell = targetCell;
+        Cell = targetCell;
+        Spawner = targetSpawner;
+        SourcePrefab = prefab;
+        SpawnGroup = group;
 
-        if (cell != null)
-            cell.occupied = true;
+        PrefabId = prefab != null ? prefab.GetInstanceID() : 0;
     }
 
-    private void OnDestroy()
+    public void ReleaseCell()
     {
-        if (cell != null)
-            cell.occupied = false;
+        if (Cell == null)
+            return;
+
+        Cell.occupied = false;
+        Cell = null;
     }
 }

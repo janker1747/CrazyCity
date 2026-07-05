@@ -13,11 +13,12 @@ MonoBehaviour:
   m_Name: SpeedBonusCargo
   m_EditorClassIdentifier: 
   cargoName: Speed Bonus
-  icon: {fileID: 21300030, guid: 7ab74e659e1f0a34d9cfec21c478fc12, type: 3}
+  icon: {fileID: 21300000, guid: 38640cf016a01114a903c49dd0ec49b2, type: 3}
   maxValue: 500
   hasDeliveryTimer: 1
   deliveryTime: 40
   comboAmount: 1
+  healthAmount: 0
   pickupParticlePrefab: {fileID: 0}
   pickupSound: {fileID: 0}
-  minValueMultiplier: 0.25
+  minValueMultiplier: 1
