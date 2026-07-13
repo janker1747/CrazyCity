@@ -1,144 +1,339 @@
+using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using DG.Tweening;
 
 public class GarageUIManager : MonoBehaviour
 {
-    [SerializeField] private List<CarItemSO> _cars;
-    [SerializeField] private Image _carSprite;
+    [Serializable]
+    private class CarPreviewEntry
+    {
+        [Tooltip("Данные машины")]
+        public CarItemSO CarData;
+
+        [Tooltip("3D-модель машины, находящаяся на сцене")]
+        public GameObject Visual;
+
+        [NonSerialized]
+        public Vector3 StartLocalPosition;
+    }
+
+    [Header("3D Car Preview")]
+    [SerializeField] private List<CarPreviewEntry> _carPreviews;
+
+    [Header("Car Information")]
     [SerializeField] private TMP_Text _carName;
 
-    [Header("Animation switch car Setting")]
-    [SerializeField] private RectTransform _carUIRoot;
-    [SerializeField] private float _moveDistance = 600f;
-    [SerializeField] private float _animationTime = 0.35f;
+    [Header("Car Switch Animation")]
+    [SerializeField, Min(0.1f)] private float _moveDistance = 6f;
+    [SerializeField, Min(0.05f)] private float _animationTime = 0.35f;
 
-    [Header("Button animation setting")]
+    [Header("Buttons")]
     [SerializeField] private RectTransform _nextButton;
     [SerializeField] private RectTransform _backButton;
-    [SerializeField] private float _buttonAnimTime = 0.12f;
+    [SerializeField, Min(0.05f)] private float _buttonAnimTime = 0.12f;
 
     [Header("Sliders")]
     [SerializeField] private Slider _speedSlider;
     [SerializeField] private Slider _healthSlider;
     [SerializeField] private Slider _damageSlider;
+    [SerializeField, Min(0.05f)] private float _sliderAnimationTime = 0.4f;
 
-
+    private Sequence _switchSequence;
     private bool _isAnimating;
+    private int _currentPreviewIndex = -1;
 
-    private int _playerIndex = 0;
-
-    private Player _player;
-
-    private void Awake()
+    private void Start()
     {
-        UpdateCarUI();
-        DontDestroyOnLoad(this);
+        InitializePreviews();
+        ShowCurrentCarImmediately();
     }
 
     public void GoForward()
     {
+        if (_isAnimating)
+            return;
+
         AnimateButton(_nextButton);
 
-        CarSelectionManager.Instance.NextCar();
-
-        AnimateForward();
+        SwitchCar(true);
     }
 
     public void GoBack()
     {
+        if (_isAnimating)
+            return;
+
         AnimateButton(_backButton);
 
-        CarSelectionManager.Instance.PreviousCar();
-
-        AnimateBack();
-    }
-
-    private void UpdateCarUI()
-    {
-        CarItemSO car = CarSelectionManager.Instance.GetCurrentCar();
-
-        _carSprite.sprite = car.PlayerSprite;
-
-        _carName.text = car.PlayerName;        
-        _speedSlider.DOValue(car.speed, 0.4f); 
-        _healthSlider.DOValue(car.health, 0.4f);
-        _damageSlider.DOValue(car.damage, 0.4f);
-    }
-
-    public void ChoisePlayer()
-    {
-        _carSprite.sprite = _cars[_playerIndex].PlayerSprite;
-        _carName.text = _cars[_playerIndex].PlayerName;
+        SwitchCar(false);
     }
 
     public Player SetPlayer()
     {
-        _player = _cars[_playerIndex].PlayerPrefab;
+        CarItemSO currentCar = GetCurrentCar();
 
-        return _player;
+        if (currentCar == null)
+        {
+            Debug.LogError("Cannot set player because the selected car was not found.");
+            return null;
+        }
+
+        return currentCar.PlayerPrefab;
     }
 
-    private void AnimateForward()
+    private void InitializePreviews()
     {
-        if (_isAnimating)
+        for (int i = 0; i < _carPreviews.Count; i++)
+        {
+            CarPreviewEntry preview = _carPreviews[i];
+
+            if (preview.Visual == null)
+                continue;
+
+            preview.StartLocalPosition = preview.Visual.transform.localPosition;
+            preview.Visual.SetActive(false);
+        }
+    }
+
+    private void ShowCurrentCarImmediately()
+    {
+        CarItemSO currentCar = GetCurrentCar();
+
+        if (currentCar == null)
             return;
 
+        _currentPreviewIndex = FindPreviewIndex(currentCar);
+
+        if (_currentPreviewIndex < 0)
+        {
+            Debug.LogError(
+                $"There is no 3D preview assigned for car: {currentCar.PlayerName}");
+            return;
+        }
+
+        CarPreviewEntry preview = _carPreviews[_currentPreviewIndex];
+
+        preview.Visual.transform.localPosition = preview.StartLocalPosition;
+        preview.Visual.SetActive(true);
+
+        UpdateCarUI(currentCar, false);
+    }
+
+    private void SwitchCar(bool forward)
+    {
+        CarItemSO previousCar = GetCurrentCar();
+
+        if (previousCar == null)
+            return;
+
+        int previousIndex = FindPreviewIndex(previousCar);
+
+        if (forward)
+            CarSelectionManager.Instance.NextCar();
+        else
+            CarSelectionManager.Instance.PreviousCar();
+
+        CarItemSO newCar = GetCurrentCar();
+
+        if (newCar == null)
+            return;
+
+        int newIndex = FindPreviewIndex(newCar);
+
+        if (newIndex < 0)
+        {
+            Debug.LogError(
+                $"There is no 3D preview assigned for car: {newCar.PlayerName}");
+            return;
+        }
+
+        if (previousIndex < 0 || previousIndex == newIndex)
+        {
+            ShowPreviewImmediately(newIndex);
+            UpdateCarUI(newCar, true);
+            return;
+        }
+
+        AnimateCarSwitch(
+            previousIndex,
+            newIndex,
+            newCar,
+            forward);
+    }
+
+    private void AnimateCarSwitch(
+        int previousIndex,
+        int newIndex,
+        CarItemSO newCar,
+        bool forward)
+    {
         _isAnimating = true;
 
-        Sequence sequence = DOTween.Sequence();
+        CarPreviewEntry previousPreview = _carPreviews[previousIndex];
+        CarPreviewEntry newPreview = _carPreviews[newIndex];
 
-        sequence.Append(_carUIRoot.DOAnchorPosX(-_moveDistance, _animationTime).SetEase(Ease.InBack));
+        Transform previousTransform = previousPreview.Visual.transform;
+        Transform newTransform = newPreview.Visual.transform;
 
-        sequence.AppendCallback(() =>
+        previousTransform.DOKill();
+        newTransform.DOKill();
+        _switchSequence?.Kill();
+
+        float exitDirection = forward ? -1f : 1f;
+        float enterDirection = -exitDirection;
+
+        Vector3 previousExitPosition =
+            previousPreview.StartLocalPosition +
+            Vector3.right * exitDirection * _moveDistance;
+
+        Vector3 newEnterPosition =
+            newPreview.StartLocalPosition +
+            Vector3.right * enterDirection * _moveDistance;
+
+        newPreview.Visual.SetActive(false);
+
+        _switchSequence = DOTween.Sequence();
+
+        _switchSequence.Append(
+            previousTransform
+                .DOLocalMove(previousExitPosition, _animationTime)
+                .SetEase(Ease.InBack));
+
+        _switchSequence.AppendCallback(() =>
         {
-            _carUIRoot.anchoredPosition = new Vector2(_moveDistance, 0);
-            UpdateCarUI();
+            previousPreview.Visual.SetActive(false);
+            previousTransform.localPosition =
+                previousPreview.StartLocalPosition;
+
+            newTransform.localPosition = newEnterPosition;
+            newPreview.Visual.SetActive(true);
+
+            _currentPreviewIndex = newIndex;
+
+            UpdateCarUI(newCar, true);
         });
 
-        sequence.Append(_carUIRoot.DOAnchorPosX(0, _animationTime).SetEase(Ease.OutBack));
+        _switchSequence.Append(
+            newTransform
+                .DOLocalMove(
+                    newPreview.StartLocalPosition,
+                    _animationTime)
+                .SetEase(Ease.OutBack));
 
-        sequence.OnComplete(() =>
+        _switchSequence.OnComplete(() =>
         {
             _isAnimating = false;
+            _switchSequence = null;
         });
     }
 
-    private void AnimateBack()
+    private void ShowPreviewImmediately(int previewIndex)
     {
-        if (_isAnimating)
+        for (int i = 0; i < _carPreviews.Count; i++)
+        {
+            CarPreviewEntry preview = _carPreviews[i];
+
+            if (preview.Visual == null)
+                continue;
+
+            preview.Visual.transform.DOKill();
+            preview.Visual.transform.localPosition =
+                preview.StartLocalPosition;
+
+            preview.Visual.SetActive(i == previewIndex);
+        }
+
+        _currentPreviewIndex = previewIndex;
+    }
+
+    private void UpdateCarUI(CarItemSO car, bool animate)
+    {
+        if (_carName != null)
+            _carName.text = car.PlayerName;
+
+        UpdateSlider(_speedSlider, car.speed, animate);
+        UpdateSlider(_healthSlider, car.health, animate);
+        UpdateSlider(_damageSlider, car.damage, animate);
+    }
+
+    private void UpdateSlider(
+        Slider slider,
+        float value,
+        bool animate)
+    {
+        if (slider == null)
             return;
 
-        _isAnimating = true;
+        slider.DOKill();
 
-        Sequence sequence = DOTween.Sequence();
-
-        sequence.Append(_carUIRoot.DOAnchorPosX(_moveDistance, _animationTime).SetEase(Ease.InBack));
-
-        sequence.AppendCallback(() =>
+        if (!animate)
         {
-            _carUIRoot.anchoredPosition = new Vector2(-_moveDistance, 0);
-            UpdateCarUI();
-        });
+            slider.SetValueWithoutNotify(value);
+            return;
+        }
 
-        sequence.Append(_carUIRoot.DOAnchorPosX(0, _animationTime).SetEase(Ease.OutBack));
+        slider.DOValue(value, _sliderAnimationTime)
+            .SetEase(Ease.OutQuad);
+    }
 
-        sequence.OnComplete(() =>
+    private CarItemSO GetCurrentCar()
+    {
+        if (CarSelectionManager.Instance == null)
         {
-            _isAnimating = false;
-        });
+            Debug.LogError(
+                "CarSelectionManager.Instance is null.");
+            return null;
+        }
+
+        return CarSelectionManager.Instance.GetCurrentCar();
+    }
+
+    private int FindPreviewIndex(CarItemSO car)
+    {
+        for (int i = 0; i < _carPreviews.Count; i++)
+        {
+            if (_carPreviews[i].CarData == car)
+                return i;
+        }
+
+        return -1;
     }
 
     private void AnimateButton(RectTransform button)
     {
+        if (button == null)
+            return;
+
         button.DOKill();
 
-        Sequence seq = DOTween.Sequence();
+        Sequence sequence = DOTween.Sequence();
 
-        seq.Append(button.DOScale(0.8f, _buttonAnimTime));
-        seq.Append(button.DOScale(1f, _buttonAnimTime).SetEase(Ease.OutBack));
+        sequence.Append(
+            button.DOScale(0.8f, _buttonAnimTime));
+
+        sequence.Append(
+            button
+                .DOScale(1f, _buttonAnimTime)
+                .SetEase(Ease.OutBack));
+    }
+
+    private void OnDisable()
+    {
+        _switchSequence?.Kill();
+        _switchSequence = null;
+
+        _isAnimating = false;
+
+        _nextButton?.DOKill();
+        _backButton?.DOKill();
+
+        foreach (CarPreviewEntry preview in _carPreviews)
+        {
+            if (preview.Visual != null)
+                preview.Visual.transform.DOKill();
+        }
     }
 }
-

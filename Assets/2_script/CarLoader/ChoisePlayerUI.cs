@@ -7,6 +7,6 @@ public class ChoisePlayerUI : MonoBehaviour
 {
     public void StartGame()
     {
-        SceneManager.LoadScene("Demo");
+        SceneManager.LoadScene("MainGame");
     }
 }

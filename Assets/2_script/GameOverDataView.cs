@@ -58,9 +58,6 @@ public class GameOverDataView : MonoBehaviour
         if (carItem == null)
             return;
 
-        if (_carImage != null)
-            _carImage.sprite = carItem.PlayerSprite;
-
         if (_carNameText != null)
             _carNameText.text = carItem.PlayerName;
    

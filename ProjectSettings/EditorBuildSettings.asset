@@ -6,14 +6,11 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/1_GameLoopScene/ChoiseCar3D.unity
+    guid: e54c0b928bb991345ab121519f295c20
+  - enabled: 1
     path: Assets/1_GameLoopScene/MainGame.unity
     guid: 78b3d38cc56282542b2dc2ea46acf349
-  - enabled: 0
-    path: Assets/1_GameLoopScene/MainMenu.unity
-    guid: 4af2e40087853154b987dab49be8bca5
-  - enabled: 0
-    path: Assets/1_GameLoopScene/ChoisePlayer.unity
-    guid: a8228cbe3bf080740991e786cdd490f7
   - enabled: 1
     path: Assets/1_GameLoopScene/GameOverScene.unity
     guid: 61d69b06c4e17a14fa8b7abd248022ce

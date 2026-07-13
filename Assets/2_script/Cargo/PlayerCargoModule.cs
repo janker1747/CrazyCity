@@ -472,8 +472,7 @@ public class PlayerCargoModule : MonoBehaviour
             {
                 PlayCargoSuccessFeedback();
 
-                activeCargo.Cargo.OnDeliver(player);
-                activeCargo.Cargo.HealthGargoDelivered += player.Health.AddHealth;
+                DeliverCargo(activeCargo.Cargo);
                 GameData.Instance.AddCargo(activeCargo.Cargo);
 
                 int reward =
@@ -490,8 +489,7 @@ public class PlayerCargoModule : MonoBehaviour
             }
 
             baggage.RemoveCargoAt(lastIndex, out _);
-            
-            activeCargo.Cargo.HealthGargoDelivered -= player.Health.AddHealth;
+
             yield return new WaitForSeconds(currentDelay);
 
             currentDelay *= 0.92f;
@@ -571,7 +569,7 @@ public class PlayerCargoModule : MonoBehaviour
 
         if (success)
         {
-            activeCargo.Cargo.OnDeliver(player);
+            DeliverCargo(activeCargo.Cargo);
             GameData.Instance.AddCargo(activeCargo.Cargo);
 
             int reward = CalculateReward(activeCargo, 1f);
@@ -589,6 +587,27 @@ public class PlayerCargoModule : MonoBehaviour
         else
         {
             activeCargo.Cargo.OnFail(player);
+        }
+    }
+
+    private void DeliverCargo(Cargo cargo)
+    {
+        if (cargo == null)
+            return;
+
+        PlayerHealth playerHealth = player != null ? player.Health : null;
+
+        if (playerHealth != null)
+            cargo.HealthGargoDelivered += playerHealth.AddHealth;
+
+        try
+        {
+            cargo.OnDeliver(player);
+        }
+        finally
+        {
+            if (playerHealth != null)
+                cargo.HealthGargoDelivered -= playerHealth.AddHealth;
         }
     }
 

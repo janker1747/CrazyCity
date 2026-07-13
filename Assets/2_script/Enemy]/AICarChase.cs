@@ -1,6 +1,6 @@
-﻿using UnityEngine;
-using UnityEngine.AI;
 using ArcadeVP;
+using UnityEngine;
+using UnityEngine.AI;
 
 public class AICarChase : MonoBehaviour
 {
@@ -14,29 +14,31 @@ public class AICarChase : MonoBehaviour
     [SerializeField] private float maxForwardInput = 1f;
     [SerializeField] private float slowDownDistance = 10f;
     [SerializeField] private float stopDistance = 1.5f;
+    [SerializeField] private float turnSlowDownAngle = 70f;
+    [SerializeField, Range(0.1f, 1f)] private float minTurnInput = 0.3f;
 
     [Header("Path")]
-    [SerializeField] private float pathUpdateInterval = 0.2f;
-    [SerializeField] private int lookAheadCornerIndex = 2;
-    [SerializeField] private float steeringSmoothness = 3f;
+    [SerializeField] private float pathUpdateInterval = 0.25f;
+    [SerializeField] private float targetPredictionDistance = 2f;
+    [SerializeField] private float navMeshSampleDistance = 6f;
+    [SerializeField] private float steeringSmoothness = 4f;
 
     [Header("Stuck Handling")]
     [SerializeField] private float stuckCheckTime = 1.5f;
-    [SerializeField] private float minMoveDistance = 0.3f;
+    [SerializeField] private float minMoveDistance = 0.8f;
     [SerializeField] private float reverseDuration = 1.2f;
+    [SerializeField] private float recoveryCooldown = 1f;
 
     private Vector3 lastPosition;
     private float stuckTimer;
-
-    private bool isReversing;
     private float reverseTimer;
-
+    private float recoveryCooldownTimer;
     private float currentSteer;
     private float pathUpdateTimer;
+    private float reverseSteer = 1f;
+    private bool isReversing;
 
-    private float modeBlend = 0f;
-    private float modeBlendSpeed = 3f;
-
+    private Transform CarTransform => vehicleController.carBody.transform;
 
     private void Awake()
     {
@@ -46,135 +48,247 @@ public class AICarChase : MonoBehaviour
         if (agent == null)
             agent = GetComponent<NavMeshAgent>();
 
-        agent.updatePosition = false;
-        agent.updateRotation = false;
+        if (agent != null)
+        {
+            agent.updatePosition = false;
+            agent.updateRotation = false;
+        }
 
-        lastPosition = transform.position;
+        ResetStuckCheck();
+    }
+
+    private void OnEnable()
+    {
+        pathUpdateTimer = 0f;
+        recoveryCooldownTimer = 0f;
+        isReversing = false;
+        ResetStuckCheck();
+    }
+
+    private void OnDisable()
+    {
+        if (vehicleController == null)
+            return;
+
+        ApplyInputs(0f, 0f, 0f);
     }
 
     public void Initialize(Transform chaseTarget)
     {
         target = chaseTarget;
+        pathUpdateTimer = 0f;
+        isReversing = false;
+        ResetStuckCheck();
     }
 
     private void Update()
     {
-        if (target == null || vehicleController == null || agent == null)
+        if (!HasRequiredReferences())
             return;
 
-        modeBlend = Mathf.Lerp(modeBlend, isReversing ? 1f : 0f, Time.deltaTime * modeBlendSpeed);
-
-        CheckStuck();
-
-        pathUpdateTimer -= Time.deltaTime;
-        if (pathUpdateTimer <= 0f)
-        {
-            pathUpdateTimer = pathUpdateInterval;
-
-            Vector3 predicted = target.position + target.forward * 3f;
-            agent.SetDestination(predicted);
-        }
+        recoveryCooldownTimer = Mathf.Max(0f, recoveryCooldownTimer - Time.deltaTime);
+        SyncAgentWithCar();
+        UpdatePath();
 
         if (isReversing)
         {
-            HandleReverse();
+            UpdateReverse();
             return;
         }
 
-        Vector3 nextPoint = GetSmoothedPoint();
-        MoveTowards(nextPoint);
-    }
-
-    private Vector3 GetSmoothedPoint()
-    {
-        if (!agent.hasPath || agent.path.corners.Length < 2)
-            return target.position;
-
-        Vector3[] c = agent.path.corners;
-
-        int index = Mathf.Min(lookAheadCornerIndex, c.Length - 1);
-        int prev = Mathf.Max(0, index - 1);
-
-        return Vector3.Lerp(c[prev], c[index], 0.5f);
-    }
-
-    private void MoveTowards(Vector3 nextPoint)
-    {
-        Transform car = vehicleController.carBody.transform;
-
-        Vector3 dir = (nextPoint - car.position).normalized;
-        float angle = Vector3.SignedAngle(car.forward, dir, Vector3.up);
-
-        float targetSteer = Mathf.Clamp(angle / 45f, -1f, 1f) * steeringStrength;
-
-        currentSteer = Mathf.Lerp(currentSteer, targetSteer, Time.deltaTime * steeringSmoothness);
-
-        float dist = Vector3.Distance(car.position, nextPoint);
-
-        float forward = maxForwardInput;
-
-        if (dist < slowDownDistance)
+        if (!TryGetSteeringPoint(out Vector3 steeringPoint))
         {
-            float t = Mathf.InverseLerp(0f, slowDownDistance, dist);
-            forward *= Mathf.Lerp(0.4f, 1f, t);
+            ApplyInputs(0f, 0f, 0f);
+            ResetStuckCheck();
+            return;
         }
 
-        float blendedForward = Mathf.Lerp(forward, -1f, modeBlend);
+        MoveTowards(steeringPoint);
+        CheckStuck();
+    }
 
-        ApplyInputs(currentSteer, blendedForward, 0f);
+    private bool HasRequiredReferences()
+    {
+        return target != null &&
+               vehicleController != null &&
+               vehicleController.carBody != null &&
+               agent != null;
+    }
 
-        agent.nextPosition = car.position;
+    private void SyncAgentWithCar()
+    {
+        if (!agent.isOnNavMesh)
+            return;
+
+        agent.nextPosition = CarTransform.position;
+    }
+
+    private void UpdatePath()
+    {
+        pathUpdateTimer -= Time.deltaTime;
+
+        if (pathUpdateTimer > 0f || !agent.isOnNavMesh)
+            return;
+
+        pathUpdateTimer = Mathf.Max(0.05f, pathUpdateInterval);
+
+        Vector3 predictedTarget =
+            target.position + target.forward * targetPredictionDistance;
+
+        if (NavMesh.SamplePosition(
+                predictedTarget,
+                out NavMeshHit hit,
+                navMeshSampleDistance,
+                agent.areaMask))
+        {
+            agent.SetDestination(hit.position);
+        }
+    }
+
+    private bool TryGetSteeringPoint(out Vector3 steeringPoint)
+    {
+        steeringPoint = default;
+
+        if (!agent.isOnNavMesh ||
+            agent.pathPending ||
+            !agent.hasPath ||
+            agent.pathStatus == NavMeshPathStatus.PathInvalid)
+        {
+            return false;
+        }
+
+        // steeringTarget is the nearest path corner. Using a later corner makes cars cut through buildings.
+        steeringPoint = agent.steeringTarget;
+        return (steeringPoint - CarTransform.position).sqrMagnitude > 0.01f;
+    }
+
+    private void MoveTowards(Vector3 steeringPoint)
+    {
+        Transform car = CarTransform;
+        Vector3 direction = Vector3.ProjectOnPlane(
+            steeringPoint - car.position,
+            Vector3.up);
+
+        if (direction.sqrMagnitude < 0.01f)
+        {
+            ApplyInputs(0f, 0f, 0f);
+            return;
+        }
+
+        float angle = Vector3.SignedAngle(car.forward, direction.normalized, Vector3.up);
+        float targetSteer = Mathf.Clamp(angle / 45f, -1f, 1f) * steeringStrength;
+        currentSteer = Mathf.MoveTowards(
+            currentSteer,
+            targetSteer,
+            steeringSmoothness * Time.deltaTime);
+
+        float remainingDistance = GetRemainingDistance();
+        float forwardInput = CalculateForwardInput(remainingDistance, Mathf.Abs(angle));
+
+        ApplyInputs(currentSteer, forwardInput, 0f);
+    }
+
+    private float GetRemainingDistance()
+    {
+        if (agent.isOnNavMesh &&
+            agent.hasPath &&
+            !float.IsInfinity(agent.remainingDistance))
+        {
+            return agent.remainingDistance;
+        }
+
+        Vector3 offset = target.position - CarTransform.position;
+        offset.y = 0f;
+        return offset.magnitude;
+    }
+
+    private float CalculateForwardInput(float remainingDistance, float turnAngle)
+    {
+        if (remainingDistance <= stopDistance)
+            return 0f;
+
+        float distanceFactor = Mathf.InverseLerp(stopDistance, slowDownDistance, remainingDistance);
+        float turnFactor = Mathf.InverseLerp(180f, turnSlowDownAngle, turnAngle);
+        float throttleFactor = Mathf.Min(
+            Mathf.Lerp(0.35f, 1f, distanceFactor),
+            Mathf.Lerp(minTurnInput, 1f, turnFactor));
+
+        return maxForwardInput * throttleFactor;
+    }
+
+    private void CheckStuck()
+    {
+        if (recoveryCooldownTimer > 0f)
+        {
+            ResetStuckCheck();
+            return;
+        }
+
+        stuckTimer += Time.deltaTime;
+
+        if (stuckTimer < stuckCheckTime)
+            return;
+
+        float movedDistance = Vector3.Distance(CarTransform.position, lastPosition);
+        bool shouldBeMoving = GetRemainingDistance() > stopDistance + 1f;
+
+        if (shouldBeMoving && movedDistance < minMoveDistance)
+            StartReverse();
+
+        ResetStuckCheck();
     }
 
     public void HandleReverse()
+    {
+        if (!HasRequiredReferences())
+            return;
+
+        StartReverse();
+    }
+
+    private void StartReverse()
+    {
+        if (isReversing || recoveryCooldownTimer > 0f)
+            return;
+
+        isReversing = true;
+        reverseTimer = reverseDuration;
+        currentSteer = 0f;
+
+        Vector3 recoveryPoint = target.position;
+        if (TryGetSteeringPoint(out Vector3 steeringPoint))
+            recoveryPoint = steeringPoint;
+
+        float localSide = CarTransform.InverseTransformPoint(recoveryPoint).x;
+        reverseSteer = Mathf.Abs(localSide) > 0.25f
+            ? -Mathf.Sign(localSide)
+            : -reverseSteer;
+    }
+
+    private void UpdateReverse()
     {
         reverseTimer -= Time.deltaTime;
 
         if (reverseTimer <= 0f)
         {
             isReversing = false;
+            recoveryCooldownTimer = recoveryCooldown;
+            pathUpdateTimer = 0f;
+            ResetStuckCheck();
             return;
         }
 
-        Transform car = vehicleController.carBody.transform;
-
-        Vector3 localTarget = car.InverseTransformPoint(target.position);
-        float turn = Mathf.Sign(localTarget.x);
-
-        ApplyInputs(turn, -1f, 0f);
-
-        agent.nextPosition = car.position;
+        ApplyInputs(reverseSteer, -1f, 0f);
     }
 
-    private void CheckStuck()
+    private void ResetStuckCheck()
     {
-        if (isReversing)
-            return;
+        stuckTimer = 0f;
 
-        float moved = Vector3.Distance(vehicleController.carBody.position, lastPosition);
-
-        if (moved < minMoveDistance)
-        {
-            stuckTimer += Time.deltaTime;
-
-            if (stuckTimer >= stuckCheckTime)
-            {
-                StartReverse();
-                stuckTimer = 0f;
-            }
-        }
+        if (vehicleController != null && vehicleController.carBody != null)
+            lastPosition = vehicleController.carBody.position;
         else
-        {
-            stuckTimer = 0f;
-        }
-
-        lastPosition = vehicleController.carBody.position;
-    }
-
-    private void StartReverse()
-    {
-        isReversing = true;
-        reverseTimer = reverseDuration;
+            lastPosition = transform.position;
     }
 
     private void ApplyInputs(float horizontal, float forward, float handbrake)
@@ -182,6 +296,6 @@ public class AICarChase : MonoBehaviour
         vehicleController.overrideInput = true;
         vehicleController.overrideHorizontal = Mathf.Clamp(horizontal, -1f, 1f);
         vehicleController.overrideVertical = Mathf.Clamp(forward, -1f, 1f);
-        vehicleController.overrideJump = Mathf.Clamp(handbrake, 0f, 1f);
+        vehicleController.overrideJump = Mathf.Clamp01(handbrake);
     }
 }
