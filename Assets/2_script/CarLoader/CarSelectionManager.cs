@@ -12,22 +12,28 @@ public class CarSelectionManager : MonoBehaviour
 
     private void Awake()
     {
-        _gameData = GameData.Instance;
-        
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            SaveCurrentCar();
-        }
-        else
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
+            return;
         }
+
+        Instance = this;
+        _gameData = GameData.Instance;
+        SaveCurrentCar();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     public void NextCar()
     {
+        if (!HasCars())
+            return;
+
         _currentIndex++;
 
         if (_currentIndex >= _cars.Count)
@@ -38,6 +44,9 @@ public class CarSelectionManager : MonoBehaviour
 
     public void PreviousCar()
     {
+        if (!HasCars())
+            return;
+
         _currentIndex--;
 
         if (_currentIndex < 0)
@@ -48,20 +57,34 @@ public class CarSelectionManager : MonoBehaviour
 
     public CarItemSO GetCurrentCar()
     {
+        if (!HasCars())
+            return null;
+
         return _cars[_currentIndex];
     }
 
     public Player GetPlayerPrefab()
     {
         SaveCurrentCar();
-        return _cars[_currentIndex].PlayerPrefab;
+        CarItemSO currentCar = GetCurrentCar();
+        return currentCar != null ? currentCar.PlayerPrefab : null;
+    }
+
+    public void ConfirmSelection()
+    {
+        SaveCurrentCar();
     }
 
     private void SaveCurrentCar()
     {
-        if (_cars == null || _cars.Count == 0)
+        if (!HasCars())
             return;
 
         _gameData.SetCar(_cars[_currentIndex]);
+    }
+
+    private bool HasCars()
+    {
+        return _cars != null && _cars.Count > 0;
     }
 }

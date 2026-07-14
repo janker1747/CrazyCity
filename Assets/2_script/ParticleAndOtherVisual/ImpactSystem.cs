@@ -43,6 +43,19 @@ public class ImpactSystem : MonoBehaviour
         PlaySound(sound);
     }
 
+    public void SetPlayer(Player player)
+    {
+        if (isActiveAndEnabled && _collisionHandler != null)
+            _collisionHandler.OnImpact -= HandleImpact;
+
+        _player = player;
+        _collisionHandler = player != null ? player.PlayerCollision : null;
+        _scoreSystem = player != null ? player.ScoreSystem : null;
+
+        if (isActiveAndEnabled && _collisionHandler != null)
+            _collisionHandler.OnImpact += HandleImpact;
+    }
+
     private void HandleImpact(Vector3 position, ImpactData data)
     {
         if (data == null)

@@ -17,6 +17,7 @@ public class UiPlayer : MonoBehaviour
     [SerializeField] private Image m_PowerCollisionImage;
 
     private Dictionary<string, Image> _boostImages;
+    private Button _boundBoostButton;
 
     public event Action OnButtonClick;
 
@@ -24,20 +25,37 @@ public class UiPlayer : MonoBehaviour
 
     private void Awake()
     {
-        _useBoostItem.onClick.AddListener(() => _useBoostItem.gameObject.SetActive(false));
-        _useBoostItem.onClick.AddListener(() => OnClick());
-        _useBoostItem.gameObject.SetActive(false);
-
         _boostImages = new Dictionary<string, Image>
-    {
-        { "RockWand", m_RockWandImage },
-        { "shield", m_ShieldImage },
-        { "PowerCollision", m_PowerCollisionImage }
-    };
+        {
+            { "RockWand", m_RockWandImage },
+            { "shield", m_ShieldImage },
+            { "PowerCollision", m_PowerCollisionImage }
+        };
 
-        m_RockWandImage.gameObject.SetActive(false);
-        m_ShieldImage.gameObject.SetActive(false);
-        m_PowerCollisionImage.gameObject.SetActive(false);
+        SetImageActive(m_RockWandImage, false);
+        SetImageActive(m_ShieldImage, false);
+        SetImageActive(m_PowerCollisionImage, false);
+
+        BindBoostButton();
+    }
+
+    private void OnDestroy()
+    {
+        UnbindBoostButton();
+    }
+
+    public void BindSceneUI(
+        TMP_Text speedText,
+        Button useBoostButton,
+        Image boostIcon)
+    {
+        UnbindBoostButton();
+
+        _text = speedText;
+        _useBoostItem = useBoostButton;
+        _boostIcon = boostIcon;
+
+        BindBoostButton();
     }
 
     private void OnClick()
@@ -53,31 +71,69 @@ public class UiPlayer : MonoBehaviour
     
     public void HandleBoost(Sprite icon)
     {
+        if (_useBoostItem == null || _boostIcon == null)
+            return;
+
         _useBoostItem.gameObject.SetActive(true);
         _boostIcon.sprite = icon;
     }
 
     public void EnableImage(string key)
     {
-        if (_boostImages.TryGetValue(key, out var img))
+        if (_boostImages.TryGetValue(key, out var img) && img != null)
             img.gameObject.SetActive(true);
     }
 
     public void DisableImage(string key)
     {
-        if (_boostImages.TryGetValue(key, out var img))
+        if (_boostImages.TryGetValue(key, out var img) && img != null)
             img.gameObject.SetActive(false);
     }
 
     public void UpdateText(float currentSpeed)
     {
+        if (_text == null)
+            return;
+
         int speed = Convert.ToInt32(currentSpeed);
-       _text.text = speed.ToString();
+        _text.text = speed.ToString();
     }
 
     public void ActivateUiSpeedBoost()
     { 
         _cameraFeedback.ShowSpeedBoost();
         StartCoroutine(DisableUISpeedBoost());
+    }
+
+    private void BindBoostButton()
+    {
+        if (_useBoostItem == null)
+            return;
+
+        _boundBoostButton = _useBoostItem;
+        _boundBoostButton.onClick.AddListener(HandleBoostButtonClick);
+        _boundBoostButton.gameObject.SetActive(false);
+    }
+
+    private void UnbindBoostButton()
+    {
+        if (_boundBoostButton != null)
+            _boundBoostButton.onClick.RemoveListener(HandleBoostButtonClick);
+
+        _boundBoostButton = null;
+    }
+
+    private void HandleBoostButtonClick()
+    {
+        if (_useBoostItem != null)
+            _useBoostItem.gameObject.SetActive(false);
+
+        OnClick();
+    }
+
+    private static void SetImageActive(Image image, bool active)
+    {
+        if (image != null)
+            image.gameObject.SetActive(active);
     }
 }

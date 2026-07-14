@@ -65,11 +65,11 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _BaseMap:
         m_Texture: {fileID: 2800000, guid: e1c2cc44e93d67441a55cedf33852ba3, type: 3}
-        m_Scale: {x: 0.5, y: 0.5}
+        m_Scale: {x: 2, y: 2}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 2800000, guid: bd75352f8d2cb0d4681121ed97b8a011, type: 3}
-        m_Scale: {x: 0.5, y: 0.5}
+        m_Scale: {x: 2, y: 2}
         m_Offset: {x: 0, y: 0}
     - _Emission:
         m_Texture: {fileID: 0}

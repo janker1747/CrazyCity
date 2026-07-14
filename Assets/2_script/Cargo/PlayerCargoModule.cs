@@ -59,11 +59,15 @@ public class PlayerCargoModule : MonoBehaviour
     public void Initialize(
         Player owner,
         CargoManager manager,
-        CargoArrowUI arrowUI)
+        CargoArrowUI arrowUI,
+        CargoUIController uiController = null)
     {
         player = owner;
         cargoManager = manager;
         cargoArrowUI = arrowUI;
+
+        if (uiController != null)
+            cargoUIController = uiController;
 
         if (cargoArrowUI != null && player != null)
             cargoArrowUI.SetPlayer(player.transform);

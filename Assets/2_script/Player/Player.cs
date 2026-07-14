@@ -42,6 +42,7 @@ public class Player : MonoBehaviour
     public ScoreSystem ScoreSystem { get; private set; }
     public TimerUI Timer { get { return _UI.Timer; } }
     public UiPlayer UI { get { return _UI; } }
+    public ScoreUI ScoreView { get { return _scoreUI; } }
     public TimeStopManager Stoper { get { return _stopManager; } }
     public Rigidbody Rigidbody { get; private set; }
     public PlayerCollisionHandler PlayerCollision { get { return _collisionHandler; } }
@@ -71,10 +72,29 @@ public class Player : MonoBehaviour
         _baseVehicleDownforce = _vehicleController.downforce;
 
         EnsureCargoModule();
-        if (_cargoModule != null)
+        if (_cargoModule != null && _cargoManager != null)
             _cargoModule.Initialize(this, _cargoManager, _cargoArrowUI);
 
         EnsureHealth();
+    }
+
+    public void ConfigureSceneDependencies(
+        TimeStopManager stopManager,
+        CargoManager cargoManager,
+        CargoUIController cargoUIController)
+    {
+        _stopManager = stopManager;
+        _cargoManager = cargoManager;
+
+        EnsureCargoModule();
+        if (_cargoModule != null)
+        {
+            _cargoModule.Initialize(
+                this,
+                _cargoManager,
+                _cargoArrowUI,
+                cargoUIController);
+        }
     }
 
     private void OnEnable()

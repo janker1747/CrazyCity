@@ -25,8 +25,16 @@ public class ScoreUI : MonoBehaviour
         scoreSystem.OnScoreChanged += UpdateScore;
     }
 
+    public void SetText(TMP_Text text)
+    {
+        scoreText = text;
+    }
+
     private void UpdateScore(int score, int delta)
     {
+        if (scoreText == null)
+            return;
+
         scoreText.text = score.ToString();
 
         if (delta > 0)

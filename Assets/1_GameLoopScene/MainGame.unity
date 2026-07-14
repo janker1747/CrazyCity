@@ -103126,7 +103126,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: e088731810f4bb846888b70eaa568647, type: 2}
+  - {fileID: 2100000, guid: f677723ab3433d7439c1c4a4212a22e6, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -295733,7 +295733,19 @@ MonoBehaviour:
   _spawnPlayerPoint:
   - {fileID: 1096240411}
   - {fileID: 1833463770}
+  _fallbackPlayerPrefab: {fileID: 7875131914731315131, guid: 5040f5033cd28c04ea57261d2b18065c, type: 3}
   _dontTryLoad: 0
+  _timeStopManager: {fileID: 2098398985}
+  _cargoManager: {fileID: 708810094}
+  _cargoUIController: {fileID: 17284288}
+  _enemySpawner: {fileID: 1516943475}
+  _impactSystem: {fileID: 1750153604}
+  _cargoInventoryUI: {fileID: 708810096}
+  _playerHealthUI: {fileID: 1822758109}
+  _speedText: {fileID: 1155280252}
+  _scoreText: {fileID: 668357564}
+  _useBoostButton: {fileID: 1414774391}
+  _boostIcon: {fileID: 557782515}
 --- !u!4 &2098398984
 Transform:
   m_ObjectHideFlags: 0

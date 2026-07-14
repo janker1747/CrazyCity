@@ -11,7 +11,9 @@ GameObject:
   - component: {fileID: 485319531058849541}
   - component: {fileID: 2515073493583449635}
   - component: {fileID: 2197662897102582941}
-  - component: {fileID: -7298991312240831950}
+  - component: {fileID: 4282597724559078571}
+  - component: {fileID: 8287437530711297227}
+  - component: {fileID: 8514169700605902752}
   m_Layer: 0
   m_Name: SM_Lamp
   m_TagString: Untagged
@@ -84,8 +86,8 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &-7298991312240831950
-MeshCollider:
+--- !u!65 &4282597724559078571
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -102,7 +104,46 @@ MeshCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 3999027181095874054, guid: 43e6c23f97d728e4c9fbe90f72017ab4, type: 3}
+  serializedVersion: 3
+  m_Size: {x: 0.2645129, y: 6.008835, z: 0.7130596}
+  m_Center: {x: -0.13225806, y: 3.2378845, z: -0.13116878}
+--- !u!114 &8287437530711297227
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7264594188856706799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d9e1ba48a8d62a40a65491c0a315236, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _impactData: {fileID: 11400000, guid: 527b40fb075c1154f80c22b69ea67f6e, type: 2}
+--- !u!54 &8514169700605902752
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7264594188856706799}
+  serializedVersion: 4
+  m_Mass: 0.55
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 14
+  m_CollisionDetection: 0

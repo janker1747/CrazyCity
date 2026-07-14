@@ -36,6 +36,18 @@ public class CargoInventoryUI : MonoBehaviour
         Unsubscribe();
     }
 
+    public void SetCargoModule(PlayerCargoModule playerCargoModule)
+    {
+        Unsubscribe();
+        cargoModule = playerCargoModule;
+
+        if (!isActiveAndEnabled)
+            return;
+
+        Subscribe();
+        Rebuild();
+    }
+
     private void Subscribe()
     {
         if (cargoModule == null)

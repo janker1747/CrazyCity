@@ -15,6 +15,11 @@ public class EnemySpawner : MonoBehaviour
 
     public event Action<Enemy> OnSpawn;
 
+    public void SetTarget(Player player)
+    {
+        _PoliceTarget = player;
+    }
+
     private void OnEnable()
     {
         _timer.TimeChanged += OnTimeChanged;
@@ -39,6 +44,9 @@ public class EnemySpawner : MonoBehaviour
 
     public void SpawnPoliceCar()
     {
+        if (_PoliceTarget == null)
+            return;
+
         Enemy enemy = _pool.GetObject(_spawnPoint);
         enemy._policeAi
             .Initialize(_PoliceTarget.transform);
