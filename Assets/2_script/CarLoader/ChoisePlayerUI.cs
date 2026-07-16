@@ -28,7 +28,8 @@ public class ChoisePlayerUI : MonoBehaviour
 
         _loadingCanvasGroup.interactable = true;
         _loadingCanvasGroup.blocksRaycasts = true;
-
+        GameData.Instance.BeginNewRun();
+        
         _loadingCanvasGroup
             .DOFade(1f, _fadeDuration)
             .SetUpdate(true)
