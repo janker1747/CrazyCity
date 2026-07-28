@@ -18,14 +18,25 @@
 
     public void Subscribe()
     {
+        _collisionHandler.OnPoliceImpact += HandlePoliceImpact;
         _collisionHandler.PowerCollisionOn();
         _ui.EnableImage("PowerCollision");
     }
 
     public void Unsubscribe()
     {
+        _collisionHandler.OnPoliceImpact -= HandlePoliceImpact;
         _collisionHandler.PowerCollisionOff();
         _ui.DisableImage("PowerCollision");
         _isWaitingHit = false;
+    }
+
+    private void HandlePoliceImpact()
+    {
+        if (!_isWaitingHit)
+            return;
+
+        _isWaitingHit = false;
+        Unsubscribe();
     }
 }

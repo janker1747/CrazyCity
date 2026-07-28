@@ -13,13 +13,18 @@ public class CargoArrowUI : MonoBehaviour
     [Header("Rotation")]
     [SerializeField] private float rotationSpeed = 10f; // плавность поворота
     [SerializeField] private bool trackNearestCargoPickup = true;
+    [SerializeField, Min(0.02f)] private float targetRefreshInterval = 0.15f;
 
     private readonly List<Transform> targets = new();
+    private Transform cachedTarget;
+    private float nextTargetRefreshTime;
+    private float nextReferenceSearchTime;
     private bool warnedAboutMissingReferences;
 
     public void SetPlayer(Transform playerTransform)
     {
         player = playerTransform;
+        InvalidateTargetCache();
     }
 
     public void Show(Transform deliveryTarget)
@@ -36,6 +41,8 @@ public class CargoArrowUI : MonoBehaviour
         if (!targets.Contains(deliveryTarget))
             targets.Add(deliveryTarget);
 
+        InvalidateTargetCache();
+
         if (arrowModel != null)
             arrowModel.gameObject.SetActive(true);
     }
@@ -44,6 +51,7 @@ public class CargoArrowUI : MonoBehaviour
     {
         targets.Clear();
         trackNearestCargoPickup = true;
+        InvalidateTargetCache();
 
         if (arrowModel != null)
             arrowModel.gameObject.SetActive(false);
@@ -65,15 +73,22 @@ public class CargoArrowUI : MonoBehaviour
             return;
         }
 
-        Transform nearestTarget = trackNearestCargoPickup ? GetNearestCargoPickup() : GetNearestTarget();
-        if (nearestTarget == null)
+        if (cachedTarget == null ||
+            !cachedTarget.gameObject.activeInHierarchy ||
+            Time.unscaledTime >= nextTargetRefreshTime)
+        {
+            cachedTarget = trackNearestCargoPickup ? GetNearestCargoPickup() : GetNearestTarget();
+            nextTargetRefreshTime = Time.unscaledTime + targetRefreshInterval;
+        }
+
+        if (cachedTarget == null)
         {
             arrowModel.gameObject.SetActive(false);
             return;
         }
 
         arrowModel.gameObject.SetActive(true);
-        UpdatePositionAndRotation(nearestTarget);
+        UpdatePositionAndRotation(cachedTarget);
     }
 
     private void EnsureReferences()
@@ -81,8 +96,9 @@ public class CargoArrowUI : MonoBehaviour
         if (arrowModel == null)
             arrowModel = transform; // если не задано — сам объект
 
-        if (player == null)
+        if (player == null && Time.unscaledTime >= nextReferenceSearchTime)
         {
+            nextReferenceSearchTime = Time.unscaledTime + 0.5f;
             Player foundPlayer = FindObjectOfType<Player>();
             if (foundPlayer != null)
                 player = foundPlayer.transform;
@@ -169,5 +185,11 @@ public class CargoArrowUI : MonoBehaviour
 
         Debug.LogWarning($"{nameof(CargoArrowUI)} on {name}: player or arrowModel is missing.");
         warnedAboutMissingReferences = true;
+    }
+
+    private void InvalidateTargetCache()
+    {
+        cachedTarget = null;
+        nextTargetRefreshTime = 0f;
     }
 }

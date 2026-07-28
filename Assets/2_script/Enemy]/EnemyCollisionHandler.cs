@@ -26,8 +26,7 @@ public class EnemyCollisionHandler : MonoBehaviour
 
         _canDealDamage = false;
             
-        Player player = collision.gameObject.GetComponent<Player>();
-        PlayerCargoModule cargoModule = collision.gameObject.GetComponent<PlayerCargoModule>();
+        Player player = collision.gameObject.GetComponentInParent<Player>();
             
         if (player == null)
         {
@@ -37,12 +36,13 @@ public class EnemyCollisionHandler : MonoBehaviour
 
         OnCollidedWithPlayer?.Invoke();
 
-        if (player.HasShield)
+        if (player.TryConsumeShield())
         {
-            player.ConsumeShield();
             StartDamageCooldown();
             return;
         }
+
+        PlayerCargoModule cargoModule = player.CargoModule;
 
         int damage = player.ModifyCargoScoreDamage(_damage);
         
@@ -52,7 +52,7 @@ public class EnemyCollisionHandler : MonoBehaviour
             return;
         }
         
-        bool inTakeDamage = cargoModule.TakeDamage(damage);
+        bool inTakeDamage = cargoModule != null && cargoModule.TakeDamage(damage);
 
         if (inTakeDamage == false)
         { 

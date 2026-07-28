@@ -35,7 +35,7 @@ public class WorldObjectSpawner : MonoBehaviour
     [SerializeField] private bool spawnOnStart = true;
     [SerializeField] private Transform globalSpawnParent;
 
-    private readonly List<MapGrids.Cell> freeCells = new();
+    private readonly List<int> freeCellIndices = new();
 
     // 🔥 ключ: prefab reference (самый стабильный вариант)
     private readonly Dictionary<GameObject, Queue<GameObject>> pools = new();
@@ -75,6 +75,8 @@ public class WorldObjectSpawner : MonoBehaviour
         if (timer == null)
             timer = FindObjectOfType<MainGameTimer>();
 
+        InitializeFreeCellIndices();
+
         float currentTime = timer != null ? timer.CurrentTime : 0f;
 
         foreach (var g in spawnGroups)
@@ -88,9 +90,10 @@ public class WorldObjectSpawner : MonoBehaviour
 
     private void PrewarmGroup(SpawnGroup group)
     {
-        foreach (var prefab in group.prefabs)
+        foreach (GameObject prefab in group.prefabs)
         {
-            if (prefab == null) continue;
+            if (prefab == null)
+                continue;
 
             Queue<GameObject> pool = GetPool(prefab);
 
@@ -99,11 +102,19 @@ public class WorldObjectSpawner : MonoBehaviour
                 GameObject obj = Instantiate(prefab, globalSpawnParent);
                 obj.SetActive(false);
 
-                var spawned = obj.GetComponent<SpawnedWorldObject>();
+                SpawnedWorldObject spawned =
+                    obj.GetComponent<SpawnedWorldObject>();
+
                 if (spawned == null)
                     spawned = obj.AddComponent<SpawnedWorldObject>();
 
-                spawned.Initialize(null, this, prefab, group);
+                spawned.Initialize(
+                    null,
+                    -1,
+                    this,
+                    prefab,
+                    group
+                );
 
                 pool.Enqueue(obj);
             }
@@ -122,8 +133,6 @@ public class WorldObjectSpawner : MonoBehaviour
 
             int missing = group.targetAmount - group.activeCount;
             if (missing <= 0) continue;
-
-            CacheFreeCells();
 
             for (int i = 0; i < missing; i++)
             {
@@ -144,8 +153,6 @@ public class WorldObjectSpawner : MonoBehaviour
             int missing = group.targetAmount - group.activeCount;
             if (missing <= 0) continue;
 
-            CacheFreeCells();
-
             for (int i = 0; i < missing; i++)
                 SpawnFromGroup(group);
         }
@@ -153,34 +160,65 @@ public class WorldObjectSpawner : MonoBehaviour
 
     private void SpawnFromGroup(SpawnGroup group)
     {
-        if (freeCells.Count == 0) return;
-        if (group.prefabs == null || group.prefabs.Count == 0) return;
+        if (freeCellIndices.Count == 0)
+            return;
 
-        GameObject prefab = group.prefabs[Random.Range(0, group.prefabs.Count)];
+        if (group.prefabs == null || group.prefabs.Count == 0)
+            return;
 
-        int index = Random.Range(0, freeCells.Count);
-        MapGrids.Cell cell = freeCells[index];
-        freeCells.RemoveAt(index);
+        GameObject prefab =
+            group.prefabs[Random.Range(0, group.prefabs.Count)];
 
-        cell.occupied = true;
+        if (prefab == null)
+            return;
+
+        int randomListIndex =
+            Random.Range(0, freeCellIndices.Count);
+
+        int cellIndex =
+            freeCellIndices[randomListIndex];
+
+        int lastListIndex = freeCellIndices.Count - 1;
+        freeCellIndices[randomListIndex] = freeCellIndices[lastListIndex];
+        freeCellIndices.RemoveAt(lastListIndex);
+
+        if (!mapGrids.TryOccupyCell(cellIndex, out MapGrids.Cell cell))
+            return;
 
         Quaternion rotation = group.randomRotation
-            ? Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)
+            ? Quaternion.Euler(
+                0f,
+                Random.Range(0f, 360f),
+                0f)
             : Quaternion.identity;
-
-        rotation = Quaternion.FromToRotation(Vector3.up, cell.normal) * rotation;
 
         GameObject obj = GetFromPool(prefab);
 
-        Transform parent = group.parent != null ? group.parent : globalSpawnParent;
+        Transform parent = group.parent != null
+            ? group.parent
+            : globalSpawnParent;
 
         obj.transform.SetParent(parent);
-        obj.transform.SetPositionAndRotation(cell.position + Vector3.up * 2f, rotation);
 
-        ResetPhysics(obj);
+        obj.transform.SetPositionAndRotation(
+            cell.position + Vector3.up * 2f,
+            rotation
+        );
 
-        var spawned = obj.GetComponent<SpawnedWorldObject>();
-        spawned.Initialize(cell, this, prefab, group);
+        SpawnedWorldObject spawned =
+            obj.GetComponent<SpawnedWorldObject>();
+
+        if (spawned == null)
+            spawned = obj.AddComponent<SpawnedWorldObject>();
+
+        spawned.ResetPhysicsState();
+        spawned.Initialize(
+            mapGrids,
+            cellIndex,
+            this,
+            prefab,
+            group
+        );
 
         obj.SetActive(true);
 
@@ -191,13 +229,15 @@ public class WorldObjectSpawner : MonoBehaviour
     {
         if (obj == null) return;
 
-        obj.ReleaseCell();
+        int releasedCellIndex = obj.ReleaseCell();
+        if (releasedCellIndex >= 0)
+            freeCellIndices.Add(releasedCellIndex);
 
         GameObject go = obj.gameObject;
         go.SetActive(false);
         go.transform.SetParent(globalSpawnParent);
 
-        ResetPhysics(go);
+        obj.ResetPhysicsState();
 
         if (obj.SourcePrefab == null)
         {
@@ -233,7 +273,12 @@ public class WorldObjectSpawner : MonoBehaviour
         if (spawned == null)
             spawned = created.AddComponent<SpawnedWorldObject>();
 
-        spawned.Initialize(null, this, prefab, null);
+        spawned.Initialize(
+            null,
+            -1,
+            this,
+            prefab,
+            null);
 
         return created;
     }
@@ -249,26 +294,26 @@ public class WorldObjectSpawner : MonoBehaviour
         return pool;
     }
 
-    private void ResetPhysics(GameObject target)
+    private void InitializeFreeCellIndices()
     {
-        foreach (var rb in target.GetComponentsInChildren<Rigidbody>())
+        freeCellIndices.Clear();
+
+        if (mapGrids == null)
+            return;
+
+        int cellCount = mapGrids.CellCount;
+        if (freeCellIndices.Capacity < cellCount)
+            freeCellIndices.Capacity = cellCount;
+
+        for (int i = 0; i < cellCount; i++)
         {
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.Sleep();
-        }
-    }
+            if (!mapGrids.TryGetCell(i, out MapGrids.Cell cell) ||
+                cell.occupied)
+            {
+                continue;
+            }
 
-    private void CacheFreeCells()
-    {
-        freeCells.Clear();
-
-        foreach (var c in mapGrids.Cells)
-        {
-            if (c == null) continue;
-            if (c.occupied) continue;
-
-            freeCells.Add(c);
+            freeCellIndices.Add(i);
         }
     }
 }

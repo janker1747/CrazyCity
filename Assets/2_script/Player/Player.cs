@@ -177,6 +177,15 @@ public class Player : MonoBehaviour
         HasShield = false;
     }
 
+    public bool TryConsumeShield()
+    {
+        if (!HasShield)
+            return false;
+
+        ConsumeShield();
+        return true;
+    }
+
     public bool TryTakeCargo(Cargo cargo)
     {
         EnsureCargoModule();

@@ -8,10 +8,9 @@ namespace _2_script
     public class MapGrids : MonoBehaviour
     {
         [Serializable]
-        public class Cell
+        public struct Cell
         {
             public Vector3 position;
-            public Vector3 normal;
             public bool occupied;
         }
 
@@ -31,6 +30,7 @@ namespace _2_script
         [SerializeField] private List<Cell> cells = new();
 
         public IReadOnlyList<Cell> Cells => cells;
+        public int CellCount => cells.Count;
 
         [ContextMenu("Bake Grid")]
         public void BakeGrid()
@@ -81,7 +81,6 @@ namespace _2_script
                         cells.Add(new Cell
                         {
                             position = hit.point,
-                            normal = hit.normal,
                             occupied = false
                         });
                     }
@@ -91,6 +90,51 @@ namespace _2_script
             Debug.Log(
                 $"Bake complete. Rays: {rayCount}, Hits: {hitCount}, Filtered: {filteredCount}, Cells: {cells.Count}"
             );
+        }
+
+        public bool TryOccupyCell(int index, out Cell cell)
+        {
+            cell = default;
+
+            if (index < 0 || index >= cells.Count)
+                return false;
+
+            cell = cells[index];
+
+            if (cell.occupied)
+                return false;
+
+            cell.occupied = true;
+            cells[index] = cell;
+
+            return true;
+        }
+
+        public bool ReleaseCell(int index)
+        {
+            if (index < 0 || index >= cells.Count)
+                return false;
+
+            Cell cell = cells[index];
+
+            if (!cell.occupied)
+                return false;
+
+            cell.occupied = false;
+            cells[index] = cell;
+
+            return true;
+        }
+
+        public bool TryGetCell(int index, out Cell cell)
+        {
+            cell = default;
+
+            if (index < 0 || index >= cells.Count)
+                return false;
+
+            cell = cells[index];
+            return true;
         }
 
         private void OnDrawGizmos()
@@ -103,7 +147,7 @@ namespace _2_script
             foreach (Cell cell in cells)
             {
                 Gizmos.DrawCube(
-                    cell.position + cell.normal * 0.05f,
+                    cell.position,
                     Vector3.one * gizmoSize
                 );
             }

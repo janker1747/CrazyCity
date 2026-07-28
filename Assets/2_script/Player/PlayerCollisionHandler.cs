@@ -10,6 +10,7 @@ public class PlayerCollisionHandler : MonoBehaviour
     private float _speed;
 
     public event Action<Vector3, ImpactData> OnImpact;
+    public event Action OnPoliceImpact;
 
     public void SetSpeed(float speed)
     {
@@ -29,7 +30,9 @@ public class PlayerCollisionHandler : MonoBehaviour
         if (source == null)
             return;
 
-        if (collision.gameObject.CompareTag("Police"))
+        bool isPolice = collision.gameObject.CompareTag("Police");
+
+        if (isPolice)
         {
             if (!PowerOn)
                 return;
@@ -44,6 +47,9 @@ public class PlayerCollisionHandler : MonoBehaviour
         rb.AddForce(direction * _impactForce, ForceMode.Impulse);
 
         OnImpact?.Invoke(hitPoint, source.Data);
+
+        if (isPolice)
+            OnPoliceImpact?.Invoke();
     }
 
     public void PowerCollisionOn()

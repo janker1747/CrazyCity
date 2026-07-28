@@ -22,6 +22,11 @@ public class AICarChase : MonoBehaviour
     [SerializeField] private float targetPredictionDistance = 2f;
     [SerializeField] private float navMeshSampleDistance = 6f;
     [SerializeField] private float steeringSmoothness = 4f;
+    [SerializeField] private float cornerLookAheadDistance = 5f;
+
+    [Header("Navigation Recovery")]
+    [SerializeField] private float navMeshRecoveryDistance = 12f;
+    [SerializeField] private float missingPathRecoveryTime = 0.75f;
 
     [Header("Stuck Handling")]
     [SerializeField] private float stuckCheckTime = 1.5f;
@@ -35,6 +40,7 @@ public class AICarChase : MonoBehaviour
     private float recoveryCooldownTimer;
     private float currentSteer;
     private float pathUpdateTimer;
+    private float missingPathTimer;
     private float reverseSteer = 1f;
     private bool isReversing;
 
@@ -60,6 +66,7 @@ public class AICarChase : MonoBehaviour
     private void OnEnable()
     {
         pathUpdateTimer = 0f;
+        missingPathTimer = 0f;
         recoveryCooldownTimer = 0f;
         isReversing = false;
         ResetStuckCheck();
@@ -77,6 +84,7 @@ public class AICarChase : MonoBehaviour
     {
         target = chaseTarget;
         pathUpdateTimer = 0f;
+        missingPathTimer = 0f;
         isReversing = false;
         ResetStuckCheck();
     }
@@ -99,10 +107,11 @@ public class AICarChase : MonoBehaviour
         if (!TryGetSteeringPoint(out Vector3 steeringPoint))
         {
             ApplyInputs(0f, 0f, 0f);
-            ResetStuckCheck();
+            RecoverMissingPath();
             return;
         }
 
+        missingPathTimer = 0f;
         MoveTowards(steeringPoint);
         CheckStuck();
     }
@@ -117,17 +126,24 @@ public class AICarChase : MonoBehaviour
 
     private void SyncAgentWithCar()
     {
-        if (!agent.isOnNavMesh)
+        if (!EnsureAgentOnNavMesh())
             return;
 
-        agent.nextPosition = CarTransform.position;
+        if (NavMesh.SamplePosition(
+                CarTransform.position,
+                out NavMeshHit hit,
+                navMeshSampleDistance,
+                agent.areaMask))
+        {
+            agent.nextPosition = hit.position;
+        }
     }
 
     private void UpdatePath()
     {
         pathUpdateTimer -= Time.deltaTime;
 
-        if (pathUpdateTimer > 0f || !agent.isOnNavMesh)
+        if (pathUpdateTimer > 0f || !EnsureAgentOnNavMesh())
             return;
 
         pathUpdateTimer = Mathf.Max(0.05f, pathUpdateInterval);
@@ -139,6 +155,18 @@ public class AICarChase : MonoBehaviour
                 predictedTarget,
                 out NavMeshHit hit,
                 navMeshSampleDistance,
+                agent.areaMask))
+        {
+            agent.SetDestination(hit.position);
+            return;
+        }
+
+        // The player may temporarily leave the road. A wider fallback keeps the
+        // police heading to the nearest reachable street instead of following an old path.
+        if (NavMesh.SamplePosition(
+                target.position,
+                out hit,
+                navMeshRecoveryDistance,
                 agent.areaMask))
         {
             agent.SetDestination(hit.position);
@@ -157,9 +185,64 @@ public class AICarChase : MonoBehaviour
             return false;
         }
 
-        // steeringTarget is the nearest path corner. Using a later corner makes cars cut through buildings.
         steeringPoint = agent.steeringTarget;
+        Vector3[] corners = agent.path.corners;
+
+        // Look ahead only while a direct segment stays on the NavMesh. This smooths
+        // harmless bends but never lets the car cut across a building corner.
+        for (int i = 1; i < corners.Length; i++)
+        {
+            Vector3 offset = corners[i] - CarTransform.position;
+            offset.y = 0f;
+
+            if (offset.sqrMagnitude > cornerLookAheadDistance * cornerLookAheadDistance)
+                break;
+
+            if (NavMesh.Raycast(agent.nextPosition, corners[i], out _, agent.areaMask))
+                break;
+
+            steeringPoint = corners[i];
+        }
+
         return (steeringPoint - CarTransform.position).sqrMagnitude > 0.01f;
+    }
+
+    private bool EnsureAgentOnNavMesh()
+    {
+        if (agent.isOnNavMesh)
+            return true;
+
+        if (!NavMesh.SamplePosition(
+                CarTransform.position,
+                out NavMeshHit hit,
+                navMeshRecoveryDistance,
+                agent.areaMask))
+        {
+            return false;
+        }
+
+        bool warped = agent.Warp(hit.position);
+
+        if (warped)
+            pathUpdateTimer = 0f;
+
+        return warped;
+    }
+
+    private void RecoverMissingPath()
+    {
+        missingPathTimer += Time.deltaTime;
+
+        if (missingPathTimer < missingPathRecoveryTime)
+            return;
+
+        EnsureAgentOnNavMesh();
+        pathUpdateTimer = 0f;
+        UpdatePath();
+
+        bool shouldBeMoving = GetRemainingDistance() > stopDistance + 1f;
+        if (shouldBeMoving && missingPathTimer >= missingPathRecoveryTime + stuckCheckTime)
+            StartReverse();
     }
 
     private void MoveTowards(Vector3 steeringPoint)
@@ -274,6 +357,7 @@ public class AICarChase : MonoBehaviour
             isReversing = false;
             recoveryCooldownTimer = recoveryCooldown;
             pathUpdateTimer = 0f;
+            missingPathTimer = 0f;
             ResetStuckCheck();
             return;
         }

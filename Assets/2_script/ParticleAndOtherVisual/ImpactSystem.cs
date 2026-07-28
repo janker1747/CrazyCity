@@ -77,10 +77,10 @@ public class ImpactSystem : MonoBehaviour
         if (particlePrefab == null || _particlePool == null)
             return;
 
-        ParticleSystem particle = _particlePool.GetParticle(particlePrefab);
-
-        particle.transform.position = position;
-        particle.Play();
+        _particlePool.PlayParticle(
+            particlePrefab,
+            position,
+            Quaternion.identity);
     }
 
     private void PlaySound(ImpactData data)

@@ -3,7 +3,7 @@ using UnityEngine;
 public class BombSpawner : MonoBehaviour
 {
     [SerializeField] private MainGameTimer _timer;
-    
+
     [SerializeField] private BombPool _bombPool;
     [SerializeField] private float _maxDistanceAhead = 3f;
     [SerializeField] private LayerMask _obstacleMask;
@@ -13,7 +13,8 @@ public class BombSpawner : MonoBehaviour
     [SerializeField] private int _spawnAttempts = 8;
     [SerializeField] private float _checkRadius = 0.35f;
     [SerializeField] private float _minDistanceAhead = 1f;
-    
+    [SerializeField] private int _bombCount ;
+
     private Transform _player;
 
     private void Start()
@@ -31,14 +32,6 @@ public class BombSpawner : MonoBehaviour
         _timer.TimeSpawnBomb -= SpawnBombSmart;
     }
 
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.B))
-        {
-            SpawnBombSmart();
-        }
-    }
-    
     public void SpawnBombSmart()
     {
         Vector3 origin = _player.position + Vector3.up;
@@ -77,12 +70,12 @@ public class BombSpawner : MonoBehaviour
             temp.transform.position = spawnPos;
             temp.transform.rotation = Quaternion.identity;
 
-            _bombPool.SpawnBomb(temp.transform);
+          
+                _bombPool.SpawnBomb(temp.transform);
 
             Destroy(temp);
 
             return;
         }
     }
-
 }

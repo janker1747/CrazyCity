@@ -30,11 +30,6 @@ public class CargoManager : MonoBehaviour
 
     public void OnDeliveryFinished()
     {
-        if (activeCell != null)
-        {
-            activeCell.occupied = false;
-            activeCell = null;
-        }
 
         if (activeDeliveryPoint != null)
             Destroy(activeDeliveryPoint.gameObject);
