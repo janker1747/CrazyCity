@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using _2_script;
 using UnityEngine;
@@ -12,6 +13,7 @@ public class CargoManager : MonoBehaviour
     private MapGrids.Cell activeCell;
 
     public DeliveryPoint ActiveDeliveryPoint => activeDeliveryPoint;
+    public event Action DeliveryCompleted;
 
     public DeliveryPoint CreateDeliveryPointForPlayer(Vector3 playerPosition, Player player)
     {
@@ -30,10 +32,14 @@ public class CargoManager : MonoBehaviour
 
     public void OnDeliveryFinished()
     {
-
         if (activeDeliveryPoint != null)
             Destroy(activeDeliveryPoint.gameObject);
 
         activeDeliveryPoint = null;
+    }
+
+    public void NotifySuccessfulDelivery()
+    {
+        DeliveryCompleted?.Invoke();
     }
 }

@@ -8,7 +8,6 @@ using UnityEngine.UI;
 public class GameOverDataView : MonoBehaviour
 {
     [Header("Car")]
-    [SerializeField] private Image _carImage;
     [SerializeField] private TMP_Text _carNameText;
 
     [Header("Result")]

@@ -15,5 +15,5 @@ MonoBehaviour:
   PlayerPrefab: {fileID: 7875131914731315131, guid: 5040f5033cd28c04ea57261d2b18065c, type: 3}
   PlayerName: TAXI
   speed: 100
-  health: 4
-  damage: 1
+  health: 5
+  damage: 25

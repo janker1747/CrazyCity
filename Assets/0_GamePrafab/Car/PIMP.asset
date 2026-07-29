@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PlayerPrefab: {fileID: 7875131914731315131, guid: 19ec3f1d3bfdf1e4c93efad42773deb9, type: 3}
   PlayerName: SNOOPPIMP
-  speed: 130
-  health: 4
-  damage: 1
+  speed: 170
+  health: 5
+  damage: 45

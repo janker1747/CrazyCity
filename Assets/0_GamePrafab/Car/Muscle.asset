@@ -15,5 +15,5 @@ MonoBehaviour:
   PlayerPrefab: {fileID: 7875131914731315131, guid: d76bdaf8b87991042b813a2e98d37432, type: 3}
   PlayerName: MASLE FOR MY MOM
   speed: 130
-  health: 7
-  damage: 3
+  health: 6
+  damage: 35

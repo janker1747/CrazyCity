@@ -15,5 +15,5 @@ MonoBehaviour:
   PlayerPrefab: {fileID: 7875131914731315131, guid: 043c86d80439f134fa12a1df1bfdfa6e, type: 3}
   PlayerName: BUSIK
   speed: 110
-  health: 8
-  damage: 1
+  health: 7
+  damage: 60

@@ -3,6 +3,7 @@ using UnityEngine;
 public class BombSpawner : MonoBehaviour
 {
     [SerializeField] private MainGameTimer _timer;
+    [SerializeField] private CargoManager _cargoManager;
 
     [SerializeField] private BombPool _bombPool;
     [SerializeField] private float _maxDistanceAhead = 3f;
@@ -13,26 +14,46 @@ public class BombSpawner : MonoBehaviour
     [SerializeField] private int _spawnAttempts = 8;
     [SerializeField] private float _checkRadius = 0.35f;
     [SerializeField] private float _minDistanceAhead = 1f;
-    [SerializeField] private int _bombCount ;
+    [SerializeField, Min(1)] private int _bombCount = 1;
+    [SerializeField, Min(0)] private int _bombIncreasePerDelivery = 1;
 
     private Transform _player;
+    private bool _deliverySubscribed;
 
     private void Start()
     {
-        _player = GameObject.FindGameObjectWithTag("Player").transform;
+        ResolvePlayer();
+        SubscribeToDeliveries();
     }
 
     private void OnEnable()
     {
-        _timer.TimeSpawnBomb += SpawnBombSmart;
+        if (_timer != null)
+            _timer.TimeSpawnBomb += SpawnBombSmart;
+
+        SubscribeToDeliveries();
     }
 
     private void OnDisable()
     {
-        _timer.TimeSpawnBomb -= SpawnBombSmart;
+        if (_timer != null)
+            _timer.TimeSpawnBomb -= SpawnBombSmart;
+
+        UnsubscribeFromDeliveries();
     }
 
     public void SpawnBombSmart()
+    {
+        if (_player == null && !ResolvePlayer())
+            return;
+
+        int bombsToSpawn = Mathf.Max(1, _bombCount);
+
+        for (int i = 0; i < bombsToSpawn; i++)
+            TrySpawnBomb();
+    }
+
+    private bool TrySpawnBomb()
     {
         Vector3 origin = _player.position + Vector3.up;
         int maxAttempts = _spawnAttempts;
@@ -75,7 +96,45 @@ public class BombSpawner : MonoBehaviour
 
             Destroy(temp);
 
-            return;
+            return true;
         }
+
+        return false;
+    }
+
+    private bool ResolvePlayer()
+    {
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        _player = playerObject != null ? playerObject.transform : null;
+        return _player != null;
+    }
+
+    private void SubscribeToDeliveries()
+    {
+        if (_deliverySubscribed)
+            return;
+
+        if (_cargoManager == null)
+            _cargoManager = FindObjectOfType<CargoManager>();
+
+        if (_cargoManager == null)
+            return;
+
+        _cargoManager.DeliveryCompleted += OnDeliveryCompleted;
+        _deliverySubscribed = true;
+    }
+
+    private void UnsubscribeFromDeliveries()
+    {
+        if (!_deliverySubscribed || _cargoManager == null)
+            return;
+
+        _cargoManager.DeliveryCompleted -= OnDeliveryCompleted;
+        _deliverySubscribed = false;
+    }
+
+    private void OnDeliveryCompleted()
+    {
+        _bombCount += Mathf.Max(0, _bombIncreasePerDelivery);
     }
 }

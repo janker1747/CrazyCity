@@ -35,11 +35,11 @@ public class
     public override bool RemoveCargo(ActiveCargo cargo)
     {
         bool removed = base.RemoveCargo(cargo);
-        _uiController.RemoveHealthCargo();
-        
+
         if (!removed)
             return false;
 
+        _uiController?.RemoveHealthCargo();
         health.RemoveHealth(GetHealthAmount(cargo));
         return true;
     }

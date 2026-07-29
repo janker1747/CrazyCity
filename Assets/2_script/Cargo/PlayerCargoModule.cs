@@ -402,6 +402,7 @@ public class PlayerCargoModule : MonoBehaviour
         if (isSuccessSequenceRunning)
             return;
 
+        isSuccessSequenceRunning = true;
         StartCoroutine(SuccessSequenceCoroutine());
     }
 
@@ -458,8 +459,6 @@ public class PlayerCargoModule : MonoBehaviour
 
     private IEnumerator SuccessSequenceCoroutine()
     {
-        isSuccessSequenceRunning = true;
-
         int deliveredCargoCount = baggage.Count;
 
         float rewardMultiplier = CalculateGlobalRewardMultiplier();
@@ -501,6 +500,7 @@ public class PlayerCargoModule : MonoBehaviour
 
         GiveComboBonus(deliveredCargoCount);
 
+        cargoManager?.NotifySuccessfulDelivery();
         RefreshDeliveryState();
 
         isSuccessSequenceRunning = false;

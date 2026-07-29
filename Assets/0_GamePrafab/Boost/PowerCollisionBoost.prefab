@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3083644617857106234}
   - component: {fileID: 4679080905199844643}
   - component: {fileID: -4969385593079372202}
+  - component: {fileID: 9162914608408520728}
   m_Layer: 0
   m_Name: PowerCollisionBoost
   m_TagString: Untagged
@@ -120,3 +121,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   data: {fileID: 11400000, guid: 51de78ca712850646afba7ceaa3f777c, type: 2}
+--- !u!136 &9162914608408520728
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5803077547432447214}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 12.001745
+  m_Height: 24.00349
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 2.4150217}

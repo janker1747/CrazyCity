@@ -27,6 +27,7 @@ public class WorldObjectSpawner : MonoBehaviour
     [Header("References")]
     [SerializeField] private MainGameTimer timer;
     [SerializeField] private MapGrids mapGrids;
+    [SerializeField] private CargoManager cargoManager;
 
     [Header("Groups")]
     [SerializeField] private List<SpawnGroup> spawnGroups;
@@ -35,12 +36,17 @@ public class WorldObjectSpawner : MonoBehaviour
     [SerializeField] private bool spawnOnStart = true;
     [SerializeField] private Transform globalSpawnParent;
 
+    [Header("Delivery Progression")]
+    [SerializeField] private string supportedCargoGroupId = "Cargo";
+    [SerializeField, Min(0)] private int supportedCargoIncreasePerDelivery = 1;
+
     private readonly List<int> freeCellIndices = new();
 
     // 🔥 ключ: prefab reference (самый стабильный вариант)
     private readonly Dictionary<GameObject, Queue<GameObject>> pools = new();
 
     private bool initialized;
+    private bool deliverySubscribed;
 
     private void Start()
     {
@@ -54,12 +60,16 @@ public class WorldObjectSpawner : MonoBehaviour
     {
         if (timer != null)
             timer.TimeChanged += HandleTimeChanged;
+
+        SubscribeToDeliveries();
     }
 
     private void OnDisable()
     {
         if (timer != null)
             timer.TimeChanged -= HandleTimeChanged;
+
+        UnsubscribeFromDeliveries();
     }
 
     private void Initialize()
@@ -75,6 +85,7 @@ public class WorldObjectSpawner : MonoBehaviour
         if (timer == null)
             timer = FindObjectOfType<MainGameTimer>();
 
+        SubscribeToDeliveries();
         InitializeFreeCellIndices();
 
         float currentTime = timer != null ? timer.CurrentTime : 0f;
@@ -314,6 +325,62 @@ public class WorldObjectSpawner : MonoBehaviour
             }
 
             freeCellIndices.Add(i);
+        }
+    }
+
+    private void SubscribeToDeliveries()
+    {
+        if (deliverySubscribed)
+            return;
+
+        if (cargoManager == null)
+            cargoManager = FindObjectOfType<CargoManager>();
+
+        if (cargoManager == null)
+            return;
+
+        cargoManager.DeliveryCompleted += IncreaseSupportedCargoAmount;
+        deliverySubscribed = true;
+    }
+
+    private void UnsubscribeFromDeliveries()
+    {
+        if (!deliverySubscribed || cargoManager == null)
+            return;
+
+        cargoManager.DeliveryCompleted -= IncreaseSupportedCargoAmount;
+        deliverySubscribed = false;
+    }
+
+    private void IncreaseSupportedCargoAmount()
+    {
+        int increase = Mathf.Max(0, supportedCargoIncreasePerDelivery);
+        if (increase == 0 || spawnGroups == null)
+            return;
+
+        for (int i = 0; i < spawnGroups.Count; i++)
+        {
+            SpawnGroup group = spawnGroups[i];
+
+            if (group == null ||
+                !string.Equals(
+                    group.id,
+                    supportedCargoGroupId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            group.targetAmount += increase;
+
+            if (!initialized)
+                return;
+
+            int missing = group.targetAmount - group.activeCount;
+            for (int spawnIndex = 0; spawnIndex < missing; spawnIndex++)
+                SpawnFromGroup(group);
+
+            return;
         }
     }
 }

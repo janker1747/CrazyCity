@@ -15702,7 +15702,7 @@ MonoBehaviour:
   drivableSurface:
     serializedVersion: 2
     m_Bits: 7240
-  MaxSpeed: 100
+  MaxSpeed: 160
   accelaration: 14.4
   turn: 15.8
   gravity: 9
@@ -16051,7 +16051,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8a79bf7637ca6645adce5a1dd25b025, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _maxHealth: 5
+  _maxHealth: 4
   _resetOnAwake: 1
 --- !u!114 &5758742122403062854
 MonoBehaviour:
@@ -16142,7 +16142,7 @@ MonoBehaviour:
   successInterval: 0.05
   successSound: {fileID: 0}
   successParticle: {fileID: 0}
-  comboBonusPerCargo: 25
+  comboBonusPerCargo: 50
   comboBonusCurve:
     serializedVersion: 2
     m_Curve:

@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PlayerPrefab: {fileID: 7875131914731315131, guid: 44f0dcc1523e6b74090be25a92fd73b0, type: 3}
   PlayerName: CART
-  speed: 150
+  speed: 140
   health: 3
-  damage: 1
+  damage: 80

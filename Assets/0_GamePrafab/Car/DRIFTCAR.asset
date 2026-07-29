@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PlayerPrefab: {fileID: 7875131914731315131, guid: b202925e91caf4245808b4aee2b1b33f, type: 3}
   PlayerName: STAIL
-  speed: 120
-  health: 5
-  damage: 1
+  speed: 160
+  health: 4
+  damage: 50

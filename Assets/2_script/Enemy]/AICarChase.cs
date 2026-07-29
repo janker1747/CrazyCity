@@ -23,6 +23,9 @@ public class AICarChase : MonoBehaviour
     [SerializeField] private float navMeshSampleDistance = 6f;
     [SerializeField] private float steeringSmoothness = 4f;
     [SerializeField] private float cornerLookAheadDistance = 5f;
+    [SerializeField] private float directChaseDistance = 8f;
+    [SerializeField] private float cachedSteeringLifetime = 1f;
+    [SerializeField] private float targetVelocitySmoothing = 6f;
 
     [Header("Navigation Recovery")]
     [SerializeField] private float navMeshRecoveryDistance = 12f;
@@ -43,6 +46,11 @@ public class AICarChase : MonoBehaviour
     private float missingPathTimer;
     private float reverseSteer = 1f;
     private bool isReversing;
+    private Vector3 lastTargetPosition;
+    private Vector3 smoothedTargetVelocity;
+    private Vector3 cachedSteeringPoint;
+    private float cachedSteeringTimer;
+    private NavMeshPath calculatedPath;
 
     private Transform CarTransform => vehicleController.carBody.transform;
 
@@ -69,6 +77,7 @@ public class AICarChase : MonoBehaviour
         missingPathTimer = 0f;
         recoveryCooldownTimer = 0f;
         isReversing = false;
+        ResetTargetTracking();
         ResetStuckCheck();
     }
 
@@ -86,6 +95,7 @@ public class AICarChase : MonoBehaviour
         pathUpdateTimer = 0f;
         missingPathTimer = 0f;
         isReversing = false;
+        ResetTargetTracking();
         ResetStuckCheck();
     }
 
@@ -95,6 +105,8 @@ public class AICarChase : MonoBehaviour
             return;
 
         recoveryCooldownTimer = Mathf.Max(0f, recoveryCooldownTimer - Time.deltaTime);
+        cachedSteeringTimer = Mathf.Max(0f, cachedSteeringTimer - Time.deltaTime);
+        UpdateTargetMotion();
         SyncAgentWithCar();
         UpdatePath();
 
@@ -106,8 +118,16 @@ public class AICarChase : MonoBehaviour
 
         if (!TryGetSteeringPoint(out Vector3 steeringPoint))
         {
-            ApplyInputs(0f, 0f, 0f);
             RecoverMissingPath();
+
+            if (TryGetFallbackSteeringPoint(out steeringPoint))
+            {
+                MoveTowards(steeringPoint);
+                CheckStuck();
+                return;
+            }
+
+            ApplyInputs(0f, 0f, 0f);
             return;
         }
 
@@ -148,8 +168,13 @@ public class AICarChase : MonoBehaviour
 
         pathUpdateTimer = Mathf.Max(0.05f, pathUpdateInterval);
 
+        Vector3 predictionDirection =
+            smoothedTargetVelocity.sqrMagnitude > 0.25f
+                ? smoothedTargetVelocity.normalized
+                : target.forward;
+
         Vector3 predictedTarget =
-            target.position + target.forward * targetPredictionDistance;
+            target.position + predictionDirection * targetPredictionDistance;
 
         if (NavMesh.SamplePosition(
                 predictedTarget,
@@ -157,8 +182,8 @@ public class AICarChase : MonoBehaviour
                 navMeshSampleDistance,
                 agent.areaMask))
         {
-            agent.SetDestination(hit.position);
-            return;
+            if (TryApplyPath(hit.position, true))
+                return;
         }
 
         // The player may temporarily leave the road. A wider fallback keeps the
@@ -169,8 +194,42 @@ public class AICarChase : MonoBehaviour
                 navMeshRecoveryDistance,
                 agent.areaMask))
         {
-            agent.SetDestination(hit.position);
+            TryApplyPath(hit.position, false);
         }
+    }
+
+    private bool TryApplyPath(Vector3 destination, bool requireCompletePath)
+    {
+        NavMeshPath path = GetCalculatedPath();
+        path.ClearCorners();
+
+        if (!agent.CalculatePath(destination, path) ||
+            path.status == NavMeshPathStatus.PathInvalid ||
+            path.corners == null ||
+            path.corners.Length < 2)
+        {
+            return false;
+        }
+
+        if (requireCompletePath &&
+            path.status != NavMeshPathStatus.PathComplete)
+        {
+            return false;
+        }
+
+        if (!agent.SetPath(path))
+            return false;
+
+        CacheSteeringPoint(path.corners[1]);
+        return true;
+    }
+
+    private NavMeshPath GetCalculatedPath()
+    {
+        if (calculatedPath == null)
+            calculatedPath = new NavMeshPath();
+
+        return calculatedPath;
     }
 
     private bool TryGetSteeringPoint(out Vector3 steeringPoint)
@@ -204,7 +263,65 @@ public class AICarChase : MonoBehaviour
             steeringPoint = corners[i];
         }
 
-        return (steeringPoint - CarTransform.position).sqrMagnitude > 0.01f;
+        bool hasSteeringPoint =
+            (steeringPoint - CarTransform.position).sqrMagnitude > 0.01f;
+
+        if (hasSteeringPoint)
+            CacheSteeringPoint(steeringPoint);
+
+        return hasSteeringPoint;
+    }
+
+    private bool TryGetFallbackSteeringPoint(out Vector3 steeringPoint)
+    {
+        steeringPoint = default;
+
+        if (cachedSteeringTimer > 0f)
+        {
+            Vector3 cachedOffset = cachedSteeringPoint - CarTransform.position;
+            cachedOffset.y = 0f;
+
+            if (cachedOffset.sqrMagnitude > 0.25f)
+            {
+                steeringPoint = cachedSteeringPoint;
+                return true;
+            }
+        }
+
+        Vector3 targetOffset = target.position - CarTransform.position;
+        targetOffset.y = 0f;
+
+        if (targetOffset.sqrMagnitude <= directChaseDistance * directChaseDistance)
+        {
+            steeringPoint = target.position;
+            return targetOffset.sqrMagnitude > 0.01f;
+        }
+
+        if (!agent.isOnNavMesh)
+            return false;
+
+        Vector3 forwardDestination =
+            agent.nextPosition +
+            Vector3.ProjectOnPlane(CarTransform.forward, Vector3.up).normalized *
+            cornerLookAheadDistance;
+
+        if (NavMesh.Raycast(
+                agent.nextPosition,
+                forwardDestination,
+                out NavMeshHit forwardHit,
+                agent.areaMask))
+        {
+            forwardDestination = forwardHit.position;
+        }
+
+        Vector3 forwardOffset = forwardDestination - CarTransform.position;
+        forwardOffset.y = 0f;
+
+        if (forwardOffset.sqrMagnitude <= 1f)
+            return false;
+
+        steeringPoint = forwardDestination;
+        return true;
     }
 
     private bool EnsureAgentOnNavMesh()
@@ -266,6 +383,15 @@ public class AICarChase : MonoBehaviour
             steeringSmoothness * Time.deltaTime);
 
         float remainingDistance = GetRemainingDistance();
+        Vector3 targetOffset = target.position - car.position;
+        targetOffset.y = 0f;
+
+        if (remainingDistance <= stopDistance &&
+            targetOffset.magnitude > stopDistance)
+        {
+            remainingDistance = targetOffset.magnitude;
+        }
+
         float forwardInput = CalculateForwardInput(remainingDistance, Mathf.Abs(angle));
 
         ApplyInputs(currentSteer, forwardInput, 0f);
@@ -373,6 +499,38 @@ public class AICarChase : MonoBehaviour
             lastPosition = vehicleController.carBody.position;
         else
             lastPosition = transform.position;
+    }
+
+    private void ResetTargetTracking()
+    {
+        lastTargetPosition = target != null ? target.position : Vector3.zero;
+        smoothedTargetVelocity = Vector3.zero;
+        cachedSteeringTimer = 0f;
+    }
+
+    private void UpdateTargetMotion()
+    {
+        if (target == null || Time.deltaTime <= 0f)
+            return;
+
+        Vector3 measuredVelocity =
+            (target.position - lastTargetPosition) / Time.deltaTime;
+
+        measuredVelocity.y = 0f;
+
+        float blend =
+            1f - Mathf.Exp(-Mathf.Max(0f, targetVelocitySmoothing) * Time.deltaTime);
+
+        smoothedTargetVelocity =
+            Vector3.Lerp(smoothedTargetVelocity, measuredVelocity, blend);
+
+        lastTargetPosition = target.position;
+    }
+
+    private void CacheSteeringPoint(Vector3 steeringPoint)
+    {
+        cachedSteeringPoint = steeringPoint;
+        cachedSteeringTimer = Mathf.Max(0f, cachedSteeringLifetime);
     }
 
     private void ApplyInputs(float horizontal, float forward, float handbrake)

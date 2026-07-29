@@ -108,5 +108,84 @@ public class CarGameLoader : MonoBehaviour
         _impactSystem?.SetPlayer(player);
         _cargoInventoryUI?.SetCargoModule(player.CargoModule);
         _playerHealthUI?.SetPlayerHealth(player.Health);
+
+        BindMobileInput(player);
+    }
+
+    private void BindMobileInput(Player player)
+    {
+        if (player == null)
+            return;
+
+        PlayerMobileInputController inputController =
+            player.GetComponent<PlayerMobileInputController>();
+
+        if (inputController == null)
+            inputController = player.gameObject.AddComponent<PlayerMobileInputController>();
+
+        inputController.enabled = true;
+
+        GameObject mobileInputObject = GameObject.Find("MobileInput");
+        if (mobileInputObject == null)
+        {
+            Debug.LogWarning(
+                $"{nameof(CarGameLoader)}: MobileInput UI was not found.");
+            return;
+        }
+
+        Transform mobileInputRoot = mobileInputObject.transform;
+
+        BindMobileButton(
+            mobileInputRoot,
+            "Left",
+            inputController,
+            MobileInputButton.InputAction.Left);
+
+        BindMobileButton(
+            mobileInputRoot,
+            "Rigth",
+            inputController,
+            MobileInputButton.InputAction.Right);
+
+        BindMobileButton(
+            mobileInputRoot,
+            "Gas",
+            inputController,
+            MobileInputButton.InputAction.Forward);
+
+        BindMobileButton(
+            mobileInputRoot,
+            "Breake",
+            inputController,
+            MobileInputButton.InputAction.Back);
+
+        BindMobileButton(
+            mobileInputRoot,
+            "WALL RIDE",
+            inputController,
+            MobileInputButton.InputAction.WallRide);
+    }
+
+    private void BindMobileButton(
+        Transform root,
+        string buttonName,
+        PlayerMobileInputController inputController,
+        MobileInputButton.InputAction action)
+    {
+        Transform buttonTransform = root.Find(buttonName);
+        if (buttonTransform == null)
+        {
+            Debug.LogWarning(
+                $"{nameof(CarGameLoader)}: mobile button '{buttonName}' was not found.");
+            return;
+        }
+
+        MobileInputButton inputButton =
+            buttonTransform.GetComponent<MobileInputButton>();
+
+        if (inputButton == null)
+            inputButton = buttonTransform.gameObject.AddComponent<MobileInputButton>();
+
+        inputButton.Configure(inputController, action);
     }
 }

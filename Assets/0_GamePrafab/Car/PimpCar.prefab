@@ -15702,7 +15702,7 @@ MonoBehaviour:
   drivableSurface:
     serializedVersion: 2
     m_Bits: 7240
-  MaxSpeed: 100
+  MaxSpeed: 170
   accelaration: 14.4
   turn: 15.8
   gravity: 9
@@ -16142,7 +16142,7 @@ MonoBehaviour:
   successInterval: 0.05
   successSound: {fileID: 0}
   successParticle: {fileID: 0}
-  comboBonusPerCargo: 25
+  comboBonusPerCargo: 45
   comboBonusCurve:
     serializedVersion: 2
     m_Curve:
