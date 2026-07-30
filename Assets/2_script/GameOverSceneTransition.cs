@@ -1,5 +1,4 @@
 using System.Collections;
-using DG.Tweening;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -12,7 +11,10 @@ public class GameOverSceneTransition : MonoBehaviour
 
     [SerializeField] private string _gameOverSceneName = DefaultSceneName;
     [SerializeField] private CanvasGroup _fadeCanvasGroup;
-    [SerializeField] private float _fadeDuration = 0.8f;
+    [SerializeField, Min(0f)] private float _slowMotionDuration = 1.2f;
+    [SerializeField, Range(0.01f, 1f)] private float _deathTimeScale = 0.1f;
+    [SerializeField, Min(0f)] private float _fadeDelay = 0.15f;
+    [SerializeField, Min(0f)] private float _fadeDuration = 1.05f;
 
     private bool _isLoading;
     private bool _destroyAfterLoad;
@@ -31,6 +33,9 @@ public class GameOverSceneTransition : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (_isLoading)
+            Time.timeScale = 1f;
+
         if (Instance == this)
             Instance = null;
     }
@@ -54,33 +59,69 @@ public class GameOverSceneTransition : MonoBehaviour
     private IEnumerator LoadSceneRoutine(string sceneName)
     {
         _isLoading = true;
-        Time.timeScale = 1f;
 
         CanvasGroup fadeCanvasGroup = GetOrCreateFadeCanvasGroup();
         fadeCanvasGroup.gameObject.SetActive(true);
         fadeCanvasGroup.alpha = 0f;
         fadeCanvasGroup.blocksRaycasts = true;
 
-        Tween fadeTween = fadeCanvasGroup
-            .DOFade(1f, Mathf.Max(0f, _fadeDuration))
-            .SetUpdate(true);
+        float startTimeScale = Mathf.Clamp(Time.timeScale, 0.01f, 1f);
+        float targetTimeScale = Mathf.Min(startTimeScale, _deathTimeScale);
+        float transitionDuration = Mathf.Max(
+            _slowMotionDuration,
+            _fadeDelay + _fadeDuration);
+        float elapsed = 0f;
 
-        yield return fadeTween.WaitForCompletion();
+        while (elapsed < transitionDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
 
-        SceneManager.LoadScene(sceneName);
+            float slowMotionProgress = _slowMotionDuration <= 0f
+                ? 1f
+                : Mathf.Clamp01(elapsed / _slowMotionDuration);
+            slowMotionProgress = Mathf.SmoothStep(0f, 1f, slowMotionProgress);
+            Time.timeScale = Mathf.Lerp(startTimeScale, targetTimeScale, slowMotionProgress);
+
+            float fadeProgress = _fadeDuration <= 0f
+                ? (elapsed >= _fadeDelay ? 1f : 0f)
+                : Mathf.Clamp01((elapsed - _fadeDelay) / _fadeDuration);
+            fadeCanvasGroup.alpha = Mathf.SmoothStep(0f, 1f, fadeProgress);
+
+            yield return null;
+        }
+
+        Time.timeScale = targetTimeScale;
+        fadeCanvasGroup.alpha = 1f;
+
+        // Даём полностью чёрному кадру отрисоваться перед загрузкой.
+        yield return null;
+
+        Time.timeScale = 1f;
+        AsyncOperation loadOperation = SceneManager.LoadSceneAsync(sceneName);
+
+        if (loadOperation == null)
+        {
+            Debug.LogError(
+                $"{nameof(GameOverSceneTransition)}: не удалось загрузить сцену '{sceneName}'.",
+                this);
+            _isLoading = false;
+            yield break;
+        }
+
+        while (!loadOperation.isDone)
+            yield return null;
 
         if (_destroyAfterLoad)
         {
             if (_runtimeFadeCanvasObject != null)
                 Destroy(_runtimeFadeCanvasObject);
-
             Destroy(gameObject);
         }
     }
 
     private CanvasGroup GetOrCreateFadeCanvasGroup()
     {
-        if (_fadeCanvasGroup != null)
+        if (_fadeCanvasGroup != null && _fadeCanvasGroup.TryGetComponent(out Image _))
             return _fadeCanvasGroup;
 
         Canvas canvas = new GameObject(
@@ -90,7 +131,9 @@ public class GameOverSceneTransition : MonoBehaviour
             typeof(GraphicRaycaster)).GetComponent<Canvas>();
 
         _runtimeFadeCanvasObject = canvas.gameObject;
-        DontDestroyOnLoad(canvas.gameObject);
+        if (_destroyAfterLoad)
+            DontDestroyOnLoad(canvas.gameObject);
+
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = short.MaxValue;
 

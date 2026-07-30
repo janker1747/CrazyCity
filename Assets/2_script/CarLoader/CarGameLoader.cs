@@ -24,8 +24,11 @@ public class CarGameLoader : MonoBehaviour
     [SerializeField] private TMP_Text _scoreText;
     [SerializeField] private Button _useBoostButton;
     [SerializeField] private Image _boostIcon;
+    [SerializeField] private Button _trickButton1;
+    [SerializeField] private Button _trickButton2;
 
     private Player _player;
+    private PlayerAirController _playerAirController;
 
     public Player Player => _player;
 
@@ -109,10 +112,16 @@ public class CarGameLoader : MonoBehaviour
         _cargoInventoryUI?.SetCargoModule(player.CargoModule);
         _playerHealthUI?.SetPlayerHealth(player.Health);
 
-        BindMobileInput(player);
+        bool useMobileInput = Application.isMobilePlatform;
+        BindMobileInput(player, useMobileInput);
+
+        if (useMobileInput)
+            BindTrickButtons(player);
+        else
+            SetTrickButtonsVisible(false);
     }
 
-    private void BindMobileInput(Player player)
+    private void BindMobileInput(Player player, bool useMobileInput)
     {
         if (player == null)
             return;
@@ -120,12 +129,23 @@ public class CarGameLoader : MonoBehaviour
         PlayerMobileInputController inputController =
             player.GetComponent<PlayerMobileInputController>();
 
+        GameObject mobileInputObject = FindSceneObject("MobileInput");
+        if (mobileInputObject != null)
+            mobileInputObject.SetActive(useMobileInput);
+
+        if (!useMobileInput)
+        {
+            if (inputController != null)
+                inputController.enabled = false;
+
+            return;
+        }
+
         if (inputController == null)
             inputController = player.gameObject.AddComponent<PlayerMobileInputController>();
 
         inputController.enabled = true;
 
-        GameObject mobileInputObject = GameObject.Find("MobileInput");
         if (mobileInputObject == null)
         {
             Debug.LogWarning(
@@ -166,6 +186,23 @@ public class CarGameLoader : MonoBehaviour
             MobileInputButton.InputAction.WallRide);
     }
 
+    private GameObject FindSceneObject(string objectName)
+    {
+        Transform[] sceneTransforms = FindObjectsOfType<Transform>(true);
+
+        for (int i = 0; i < sceneTransforms.Length; i++)
+        {
+            Transform sceneTransform = sceneTransforms[i];
+            if (sceneTransform.gameObject.scene == gameObject.scene &&
+                sceneTransform.name == objectName)
+            {
+                return sceneTransform.gameObject;
+            }
+        }
+
+        return null;
+    }
+
     private void BindMobileButton(
         Transform root,
         string buttonName,
@@ -187,5 +224,95 @@ public class CarGameLoader : MonoBehaviour
             inputButton = buttonTransform.gameObject.AddComponent<MobileInputButton>();
 
         inputButton.Configure(inputController, action);
+    }
+
+    private void BindTrickButtons(Player player)
+    {
+        UnbindTrickButtons();
+
+        if (player == null)
+            return;
+
+        _playerAirController =
+            player.GetComponentInChildren<PlayerAirController>(true);
+        if (_playerAirController == null)
+        {
+            Debug.LogWarning(
+                $"{nameof(CarGameLoader)}: {nameof(PlayerAirController)} was not found on the player.");
+            SetTrickButtonsVisible(false);
+            return;
+        }
+
+        _trickButton1 = FindSceneButton(_trickButton1, "TrickButton1");
+        _trickButton2 = FindSceneButton(_trickButton2, "TrickButton2");
+
+        if (_trickButton1 != null)
+            _trickButton1.onClick.AddListener(_playerAirController.TryStartFirstTrick);
+        else
+            Debug.LogWarning($"{nameof(CarGameLoader)}: button 'TrickButton1' was not found.");
+
+        if (_trickButton2 != null)
+            _trickButton2.onClick.AddListener(_playerAirController.TryStartSecondTrick);
+        else
+            Debug.LogWarning($"{nameof(CarGameLoader)}: button 'TrickButton2' was not found.");
+
+        _playerAirController.AirborneChanged += SetTrickButtonsVisible;
+        SetTrickButtonsVisible(_playerAirController.IsAirborne);
+    }
+
+    private Button FindSceneButton(Button assignedButton, string buttonName)
+    {
+        if (assignedButton != null)
+            return assignedButton;
+
+        Button[] sceneButtons = FindObjectsOfType<Button>(true);
+
+        for (int i = 0; i < sceneButtons.Length; i++)
+        {
+            Button button = sceneButtons[i];
+            if (button.gameObject.scene == gameObject.scene &&
+                button.name == buttonName)
+            {
+                return button;
+            }
+        }
+
+        return null;
+    }
+
+    private void SetTrickButtonsVisible(bool isVisible)
+    {
+        SetTrickButtonVisible(_trickButton1, isVisible);
+        SetTrickButtonVisible(_trickButton2, isVisible);
+    }
+
+    private static void SetTrickButtonVisible(Button button, bool isVisible)
+    {
+        if (button == null)
+            return;
+
+        button.interactable = isVisible;
+        button.gameObject.SetActive(isVisible);
+    }
+
+    private void UnbindTrickButtons()
+    {
+        if (_playerAirController == null)
+            return;
+
+        _playerAirController.AirborneChanged -= SetTrickButtonsVisible;
+
+        if (_trickButton1 != null)
+            _trickButton1.onClick.RemoveListener(_playerAirController.TryStartFirstTrick);
+
+        if (_trickButton2 != null)
+            _trickButton2.onClick.RemoveListener(_playerAirController.TryStartSecondTrick);
+
+        _playerAirController = null;
+    }
+
+    private void OnDestroy()
+    {
+        UnbindTrickButtons();
     }
 }

@@ -1,5 +1,4 @@
 using System;
-using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -16,11 +15,6 @@ public class MainGameTimer : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private bool startOnAwake = true;
     [SerializeField] private bool useUnscaledTime;
-
-    [Header("UI Display")]
-    [SerializeField] private string timeFormat = @"mm\:ss";
-    [SerializeField] private bool showMilliseconds;
-    [SerializeField] private string millisecondFormat = @"mm\:ss\.ff";
 
     [Header("Events")]
     [SerializeField] private FloatEvent onTimeChanged = new();

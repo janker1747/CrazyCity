@@ -1,6 +1,6 @@
+using System;
 using ArcadeVP;
 using UnityEngine;
-using UnityEngine.SocialPlatforms.Impl;
 
 public class PlayerAirController : MonoBehaviour
 {
@@ -14,6 +14,8 @@ public class PlayerAirController : MonoBehaviour
 
     private bool _isPerformingTrick;
     private TrickData _currentTrick;
+
+    public event Action<bool> AirborneChanged;
 
     public bool IsAirborne => _isAirborne;
 
@@ -49,9 +51,23 @@ public class PlayerAirController : MonoBehaviour
             StartTrick(trick);
     }
 
+    public void TryStartFirstTrick()
+    {
+        TryStartTrick(KeyCode.Q);
+    }
+
+    public void TryStartSecondTrick()
+    {
+        TryStartTrick(KeyCode.E);
+    }
+
     private void Ground(bool isGrounded)
     {
+        bool wasAirborne = _isAirborne;
         _isAirborne = !isGrounded;
+
+        if (wasAirborne != _isAirborne)
+            AirborneChanged?.Invoke(_isAirborne);
 
         if (_isAirborne)
             EnterAir();

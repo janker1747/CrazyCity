@@ -23,6 +23,12 @@ public class PlayerMobileInputController : MonoBehaviour
 
     private void OnEnable()
     {
+        if (!Application.isMobilePlatform)
+        {
+            SetOverrideInput(false);
+            return;
+        }
+
         SetOverrideInput(overrideInputWhileEnabled);
         ApplyInput();
     }
@@ -88,6 +94,9 @@ public class PlayerMobileInputController : MonoBehaviour
 
     public void StartWallRide()
     {
+        if (!Application.isMobilePlatform)
+            return;
+
         if (wallRideJumper != null)
             wallRideJumper.RequestStartWallRide();
     }
@@ -96,6 +105,12 @@ public class PlayerMobileInputController : MonoBehaviour
     {
         if (vehicleController == null)
             return;
+
+        if (!Application.isMobilePlatform)
+        {
+            SetOverrideInput(false);
+            return;
+        }
 
         vehicleController.overrideHorizontal =
             GetAxis(leftPressed, rightPressed);
