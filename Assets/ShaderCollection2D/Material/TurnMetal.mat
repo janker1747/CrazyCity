@@ -60,6 +60,6 @@ Material:
     - _ThresholdSmooth_Smooth_1: 0.118
     - _ThresholdSmooth_Value_1: 0.53
     - _Threshold_Fade_1: 0.5
-    - _TurnMetal_Speed_1: -8
+    - _TurnMetal_Speed_1: 8
     m_Colors: []
   m_BuildTextureStacks: []
