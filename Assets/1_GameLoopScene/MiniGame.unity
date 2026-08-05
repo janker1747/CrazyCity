@@ -2243,6 +2243,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1257160874}
   - component: {fileID: 1257160875}
+  - component: {fileID: 1257160876}
   m_Layer: 5
   m_Name: TowerMiniGame
   m_TagString: Untagged
@@ -2281,6 +2282,57 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1257160873}
   m_CullTransparentMesh: 1
+--- !u!114 &1257160876
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1257160873}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b84e4bfb6a0944d7a0755c155ce3fd33, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  input: {fileID: 45111873}
+  towerRoot: {fileID: 45111874}
+  balanceIndicator: {fileID: 1229111949}
+  balanceIndicatorImage: {fileID: 1229111950}
+  boxes:
+  - {fileID: 1521796366}
+  - {fileID: 956221392}
+  - {fileID: 1242049449}
+  - {fileID: 1729513772}
+  - {fileID: 1539784161}
+  - {fileID: 80660824}
+  - {fileID: 2086284589}
+  maxLeanDegrees: 24
+  balanceZoneDegrees: 4.5
+  fallAcceleration: 48
+  controlAcceleration: 42
+  velocityDamping: 0.85
+  maxAngularVelocity: 46
+  disturbanceStrength: 8
+  initialLeanRange: {x: 5.5, y: 7}
+  initialAngularVelocityRange: {x: 3.5, y: 5.5}
+  holdDurationRange: {x: 5, y: 7}
+  startOnEnable: 1
+  useUnscaledTime: 0
+  indicatorTravel: 500
+  boxBendRotation: 0.35
+  boxBendOffset: 55
+  balancedColor: {r: 0.25, g: 0.9, b: 0.35, a: 1}
+  warningColor: {r: 1, g: 0.72, b: 0.15, a: 1}
+  dangerColor: {r: 0.95, g: 0.2, b: 0.15, a: 1}
+  onMiniGameStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  onBalanceProgressChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onMiniGameCompleted:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1275053595
 GameObject:
   m_ObjectHideFlags: 0
