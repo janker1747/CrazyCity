@@ -1,8 +1,11 @@
+using BoolAction = System.Action<bool>;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class PackageSizeMiniGame : MonoBehaviour
+public class PackageSizeMiniGame : MonoBehaviour, IMiniGameController
 {
+    public event BoolAction Finished;
+
     private enum PackageSize
     {
         Small,
@@ -39,6 +42,7 @@ public class PackageSizeMiniGame : MonoBehaviour
 
     private PackageSize correctSize;
     private bool attemptUsed;
+    private bool isRunning;
 
     private void Awake()
     {
@@ -68,6 +72,7 @@ public class PackageSizeMiniGame : MonoBehaviour
             return;
 
         attemptUsed = false;
+        isRunning = true;
 
         SetButtonsInteractable(true);
         ApplyBoxButtonSizes();
@@ -84,6 +89,12 @@ public class PackageSizeMiniGame : MonoBehaviour
                 this
             );
         }
+    }
+
+    public void Begin()
+    {
+        if (!isRunning)
+            StartGame();
     }
 
     private void SelectRandomItem()
@@ -153,6 +164,7 @@ public class PackageSizeMiniGame : MonoBehaviour
             return;
 
         attemptUsed = true;
+        isRunning = false;
         SetButtonsInteractable(false);
 
         bool success = selectedSize == correctSize;
@@ -175,6 +187,8 @@ public class PackageSizeMiniGame : MonoBehaviour
                 this
             );
         }
+
+        Finished?.Invoke(success);
     }
 
     private void SetButtonsInteractable(bool value)

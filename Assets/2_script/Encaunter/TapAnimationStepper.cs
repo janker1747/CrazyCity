@@ -1,10 +1,13 @@
+using BoolAction = System.Action<bool>;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Events;
 
-public class TapAnimationStepper : MonoBehaviour, IPointerDownHandler
+public class TapAnimationStepper : MonoBehaviour, IPointerDownHandler, IMiniGameController
 {
+    public event BoolAction Finished;
+
     [Header("Animator")]
     [SerializeField] private Animator animator;
 
@@ -98,7 +101,15 @@ public class TapAnimationStepper : MonoBehaviour, IPointerDownHandler
         onStepChanged?.Invoke(currentStep);
 
         if (currentStep == stopFrames.Length - 1)
+        {
             onCompleted?.Invoke();
+            Finished?.Invoke(true);
+        }
+    }
+
+    public void Begin()
+    {
+        ResetProgress();
     }
 
     private IEnumerator JumpToFrame(float targetFrame)

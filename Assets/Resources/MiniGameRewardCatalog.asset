@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f07d3d2ec706458890c641bfce354024, type: 3}
+  m_Name: MiniGameRewardCatalog
+  m_EditorClassIdentifier: 
+  regularCargo:
+  - {fileID: 11400000, guid: 4eb137b12e918d047928863649f90e5a, type: 2}
+  - {fileID: 11400000, guid: 0abb9812eeaa7d44faf6feba8801da47, type: 2}
+  - {fileID: 11400000, guid: df77e61675fb1fb4e883660195d9b957, type: 2}
+  - {fileID: 11400000, guid: a412b5a56ef42434b99facadc1155037, type: 2}
+  - {fileID: 11400000, guid: efc01498c65544a4fbd28d80d7f68297, type: 2}
+  - {fileID: 11400000, guid: 1dc905f13d0924b42af0054921b013e1, type: 2}
+  - {fileID: 11400000, guid: 1e22e35a799cfe8469d30d73ec1a9544, type: 2}
+  timedCargo:
+  - {fileID: 11400000, guid: a5dd791dd0a83bc419e5201ee9d7d4b2, type: 2}
+  - {fileID: 11400000, guid: e865017b2a7532145a170df9bd6afb3a, type: 2}
+  - {fileID: 11400000, guid: efda3a07cef07f24fbb31044cd9c8b7a, type: 2}
+  - {fileID: 11400000, guid: 7fc102bddb3b160478abc956a748e559, type: 2}
+  - {fileID: 11400000, guid: d8469184c17a4b146a597fdebd16d01e, type: 2}
+  - {fileID: 11400000, guid: 377e4dd0ca818c3498784c2f7b0e30c6, type: 2}
+  healthCargo:
+  - {fileID: 11400000, guid: 708a6bff0f74d6b4b80b5d46187ac2a6, type: 2}
+  - {fileID: 11400000, guid: 5f00641d188683646b03be788d84f14e, type: 2}
+  - {fileID: 11400000, guid: 4e81803177200804588afe425f313cb5, type: 2}
+  - {fileID: 11400000, guid: 9da8442d63c062747a61f4ec536c9688, type: 2}
+  - {fileID: 11400000, guid: 6a0cbafc87e195b4b92b9093b05f4744, type: 2}
+  - {fileID: 11400000, guid: 1d0d49555591c4446a465ca4ae958461, type: 2}
+  - {fileID: 11400000, guid: 1ce7f3cd42612e242b749b416baca668, type: 2}

@@ -1,10 +1,13 @@
+using BoolAction = System.Action<bool>;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Events;
 
-public sealed class BoxReturnMiniGame : MonoBehaviour
+public sealed class BoxReturnMiniGame : MonoBehaviour, IMiniGameController
 {
+    public event BoolAction Finished;
+
     private sealed class BoxState
     {
         public BoxDragItem item;
@@ -117,7 +120,8 @@ public sealed class BoxReturnMiniGame : MonoBehaviour
 
     private void Start()
     {
-        StartMiniGame();
+        if (!isRunning)
+            StartMiniGame();
     }
 
     public void StartMiniGame()
@@ -227,6 +231,12 @@ public sealed class BoxReturnMiniGame : MonoBehaviour
                 "не удалось разбросать коробки.",
                 this);
         }
+    }
+
+    public void Begin()
+    {
+        if (!isRunning)
+            StartMiniGame();
     }
 
     private void CaptureBoxPositions()
@@ -624,6 +634,7 @@ public sealed class BoxReturnMiniGame : MonoBehaviour
 
         RestoreOriginalSiblingOrder();
         onMiniGameCompleted?.Invoke();
+        Finished?.Invoke(true);
     }
 
     public void StopMiniGame()

@@ -5,8 +5,10 @@ using UnityEngine.Events;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
-public sealed class TowerBalanceMiniGame : MonoBehaviour
+public sealed class TowerBalanceMiniGame : MonoBehaviour, IMiniGameController
 {
+    public event Action<bool> Finished;
+
     [Serializable]
     public sealed class FloatEvent : UnityEvent<float>
     {
@@ -153,6 +155,14 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour
         onMiniGameStarted?.Invoke();
     }
 
+    public void Begin()
+    {
+        useUnscaledTime = true;
+
+        if (!isRunning)
+            StartGame();
+    }
+
     public void RestartGame()
     {
         StartGame();
@@ -230,6 +240,7 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour
             this);
 
         onMiniGameCompleted?.Invoke();
+        Finished?.Invoke(true);
     }
 
     private void ApplyVisuals()

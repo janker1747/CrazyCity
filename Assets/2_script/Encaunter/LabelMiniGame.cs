@@ -1,10 +1,13 @@
+using BoolAction = System.Action<bool>;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Image))]
-public class LabelMiniGame : MonoBehaviour, IPointerDownHandler
+public class LabelMiniGame : MonoBehaviour, IPointerDownHandler, IMiniGameController
 {
+    public event BoolAction Finished;
+
     [Header("Reference")]
     [SerializeField] private RectTransform label;
 
@@ -139,6 +142,12 @@ public class LabelMiniGame : MonoBehaviour, IPointerDownHandler
         }
     }
 
+    public void Begin()
+    {
+        if (!isMoving)
+            StartGame();
+    }
+
     private void CalculateScreenEdges()
     {
         Rect areaRect = movementArea.rect;
@@ -240,6 +249,8 @@ public class LabelMiniGame : MonoBehaviour, IPointerDownHandler
                 this
             );
         }
+
+        Finished?.Invoke(success);
     }
 
     public void ResetLabel()
