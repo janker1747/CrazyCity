@@ -12,6 +12,7 @@ public class CargoInventoryUI : MonoBehaviour
 
     [Header("Combo UI")]
     [SerializeField] private CanvasGroup comboUI;
+    [SerializeField] private Image hundredsDigitImage;
     [SerializeField] private Image tensDigitImage;
     [SerializeField] private Image onesDigitImage;
 
@@ -60,6 +61,9 @@ public class CargoInventoryUI : MonoBehaviour
 
         if (tensDigitImage != null)
             tensDigitImage.transform.DOKill();
+
+        if (hundredsDigitImage != null)
+            hundredsDigitImage.transform.DOKill();
 
         if (onesDigitImage != null)
             onesDigitImage.transform.DOKill();
@@ -198,7 +202,7 @@ public class CargoInventoryUI : MonoBehaviour
 
     private void SetCombo(int comboAmount, bool animate)
     {
-        int clampedCombo = Mathf.Clamp(comboAmount, 0, 99);
+        int clampedCombo = Mathf.Clamp(comboAmount, 0, 999);
 
         UpdateComboDigits(clampedCombo);
         UpdateComboVisibility(clampedCombo > 0, animate);
@@ -218,7 +222,8 @@ public class CargoInventoryUI : MonoBehaviour
         if (!DigitSpritesAreValid())
             return;
 
-        int tens = comboAmount / 10;
+        int hundreds = comboAmount / 100;
+        int tens = comboAmount / 10 % 10;
         int ones = comboAmount % 10;
 
         if (onesDigitImage != null)
@@ -227,15 +232,23 @@ public class CargoInventoryUI : MonoBehaviour
             onesDigitImage.enabled = true;
         }
 
-        if (tensDigitImage == null)
-            return;
+        if (tensDigitImage != null)
+        {
+            bool shouldShowTens = showLeadingZero || comboAmount >= 10;
+            tensDigitImage.enabled = shouldShowTens;
 
-        bool shouldShowTens = showLeadingZero || comboAmount >= 10;
+            if (shouldShowTens)
+                tensDigitImage.sprite = digitSprites[tens];
+        }
 
-        tensDigitImage.enabled = shouldShowTens;
+        if (hundredsDigitImage != null)
+        {
+            bool shouldShowHundreds = showLeadingZero || comboAmount >= 100;
+            hundredsDigitImage.enabled = shouldShowHundreds;
 
-        if (shouldShowTens)
-            tensDigitImage.sprite = digitSprites[tens];
+            if (shouldShowHundreds)
+                hundredsDigitImage.sprite = digitSprites[hundreds];
+        }
     }
 
     private void UpdateComboVisibility(bool shouldShow, bool animate)
@@ -266,6 +279,15 @@ public class CargoInventoryUI : MonoBehaviour
 
     private void PlayComboChangedAnimation()
     {
+        if (hundredsDigitImage != null && hundredsDigitImage.enabled)
+        {
+            hundredsDigitImage.transform.DOKill();
+            hundredsDigitImage.transform.localScale = Vector3.one;
+
+            hundredsDigitImage.transform
+                .DOPunchScale(Vector3.one * 0.15f, 0.15f, 1, 0f);
+        }
+
         if (tensDigitImage != null && tensDigitImage.enabled)
         {
             tensDigitImage.transform.DOKill();

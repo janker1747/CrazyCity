@@ -9,11 +9,6 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour, IMiniGameController
 {
     public event Action<bool> Finished;
 
-    [Serializable]
-    public sealed class FloatEvent : UnityEvent<float>
-    {
-    }
-
     [Header("Scene references")]
     [SerializeField] private TowerBalanceInput input;
     [SerializeField] private RectTransform towerRoot;
@@ -32,8 +27,6 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour, IMiniGameController
     [SerializeField] private Vector2 initialLeanRange = new Vector2(5.5f, 7f);
     [SerializeField] private Vector2 initialAngularVelocityRange = new Vector2(3.5f, 5.5f);
 
-    [Header("Win condition")]
-    [SerializeField] private Vector2 holdDurationRange = new Vector2(5f, 7f);
     [SerializeField] private bool startOnEnable = true;
     [SerializeField] private bool useUnscaledTime;
 
@@ -47,7 +40,6 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour, IMiniGameController
 
     [Header("Events")]
     [SerializeField] private UnityEvent onMiniGameStarted;
-    [SerializeField] private FloatEvent onBalanceProgressChanged;
     [SerializeField] private UnityEvent onMiniGameCompleted;
 
     private Quaternion towerStartRotation;
@@ -57,22 +49,19 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour, IMiniGameController
 
     private float currentLean;
     private float angularVelocity;
-    private float balanceTime;
-    private float requiredBalanceTime;
     private float disturbance;
     private float disturbanceTarget;
     private float disturbanceTimer;
-    private float lastReportedProgress = -1f;
     private bool visualStateCached;
     private bool isRunning;
     private bool isCompleted;
-    private bool hasReceivedPlayerInput;
 
     public float CurrentLean => currentLean;
-    public float BalanceProgress => requiredBalanceTime > 0f
-        ? Mathf.Clamp01(balanceTime / requiredBalanceTime)
-        : 0f;
-    public float RequiredBalanceTime => requiredBalanceTime;
+    /// <summary>
+    /// True when the indicator is green and the tower is in the centre zone.
+    /// MiniGameSceneManager uses this state when its timer expires.
+    /// </summary>
+    public bool IsIndicatorGreen => Mathf.Abs(currentLean) <= balanceZoneDegrees;
     public bool IsCompleted => isCompleted;
 
     private void Awake()
@@ -97,12 +86,8 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour, IMiniGameController
         if (deltaTime <= 0f)
             return;
 
-        if (input.LeftPressed || input.RightPressed)
-            hasReceivedPlayerInput = true;
-
         UpdateDisturbance(deltaTime);
         UpdateBalance(deltaTime);
-        UpdateWinProgress(deltaTime);
         ApplyVisuals();
     }
 
@@ -136,22 +121,13 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour, IMiniGameController
 
         currentLean = UnityEngine.Random.Range(minimumLean, maximumLean) * direction;
         angularVelocity = UnityEngine.Random.Range(minimumVelocity, maximumVelocity) * direction;
-        balanceTime = 0f;
-        requiredBalanceTime = UnityEngine.Random.Range(
-            Mathf.Min(holdDurationRange.x, holdDurationRange.y),
-            Mathf.Max(holdDurationRange.x, holdDurationRange.y));
-        requiredBalanceTime = Mathf.Max(0.1f, requiredBalanceTime);
-
         disturbance = 0f;
         disturbanceTarget = 0f;
         disturbanceTimer = 0f;
-        lastReportedProgress = -1f;
         isCompleted = false;
         isRunning = true;
-        hasReceivedPlayerInput = false;
 
         ApplyVisuals();
-        ReportProgress(true);
         onMiniGameStarted?.Invoke();
     }
 
@@ -166,6 +142,33 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour, IMiniGameController
     public void RestartGame()
     {
         StartGame();
+    }
+
+    /// <summary>
+    /// Resolves the game when the shared mini-game timer expires.
+    /// </summary>
+    public bool CompleteForTimeLimit()
+    {
+        bool success = IsIndicatorGreen;
+        isCompleted = true;
+        isRunning = false;
+        angularVelocity = 0f;
+
+        if (success)
+        {
+            Debug.Log(
+                "<color=green>[TowerBalanceMiniGame] SUCCESS</color> Timer ended in the green zone.",
+                this);
+            onMiniGameCompleted?.Invoke();
+        }
+        else
+        {
+            Debug.Log(
+                "<color=red>[TowerBalanceMiniGame] FAILURE</color> Timer ended outside the green zone.",
+                this);
+        }
+
+        return success;
     }
 
     private void UpdateDisturbance(float deltaTime)
@@ -203,44 +206,16 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour, IMiniGameController
             return;
 
         float fallDirection = Mathf.Sign(currentLean);
-        currentLean = fallDirection * maxLeanDegrees * 0.72f;
-        angularVelocity = -fallDirection * maxAngularVelocity * 0.28f;
-        balanceTime = 0f;
-        ReportProgress(true);
-    }
-
-    private void UpdateWinProgress(float deltaTime)
-    {
-        if (!hasReceivedPlayerInput)
-        {
-            balanceTime = 0f;
-            ReportProgress(false);
-            return;
-        }
-
-        if (Mathf.Abs(currentLean) <= balanceZoneDegrees)
-            balanceTime += deltaTime;
-        else if (balanceTime > 0f)
-            balanceTime = 0f;
-
-        ReportProgress(false);
-
-        if (balanceTime < requiredBalanceTime)
-            return;
-
-        balanceTime = requiredBalanceTime;
+        currentLean = fallDirection * maxLeanDegrees;
+        angularVelocity = 0f;
         isCompleted = true;
         isRunning = false;
-        angularVelocity = 0f;
-        ReportProgress(true);
 
         Debug.Log(
-            $"<color=green>[TowerBalanceMiniGame] SUCCESS</color> " +
-            $"Balance held for {requiredBalanceTime:F1} seconds.",
+            "<color=red>[TowerBalanceMiniGame] FAILURE</color> Tower reached the edge.",
             this);
 
-        onMiniGameCompleted?.Invoke();
-        Finished?.Invoke(true);
+        Finished?.Invoke(false);
     }
 
     private void ApplyVisuals()
@@ -385,16 +360,6 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour, IMiniGameController
         }
     }
 
-    private void ReportProgress(bool force)
-    {
-        float progress = BalanceProgress;
-        if (!force && Mathf.Abs(progress - lastReportedProgress) < 0.001f)
-            return;
-
-        lastReportedProgress = progress;
-        onBalanceProgressChanged?.Invoke(progress);
-    }
-
     private static RectTransform FindChildRect(Transform parent, string objectName)
     {
         for (int i = 0; i < parent.childCount; i++)
@@ -421,8 +386,6 @@ public sealed class TowerBalanceMiniGame : MonoBehaviour, IMiniGameController
             initialAngularVelocityRange.x,
             initialAngularVelocityRange.y);
 
-        holdDurationRange.x = Mathf.Max(0.1f, holdDurationRange.x);
-        holdDurationRange.y = Mathf.Max(holdDurationRange.x, holdDurationRange.y);
     }
 #endif
 

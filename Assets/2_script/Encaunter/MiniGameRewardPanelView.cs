@@ -16,14 +16,20 @@ public sealed class MiniGameRewardPanelView : MonoBehaviour
         public void Show(Cargo cargo)
         {
             bool hasCargo = cargo != null;
-            root.SetActive(hasCargo);
+            if (root != null)
+                root.SetActive(hasCargo);
 
-            if (!hasCargo)
+            if (!hasCargo || root == null)
                 return;
 
-            icon.sprite = cargo.Icon;
-            icon.enabled = cargo.Icon != null;
-            cargoName.text = cargo.CargoName;
+            if (icon != null)
+            {
+                icon.sprite = cargo.Icon;
+                icon.enabled = cargo.Icon != null;
+            }
+
+            if (cargoName != null)
+                cargoName.text = cargo.CargoName;
         }
     }
 
@@ -49,7 +55,13 @@ public sealed class MiniGameRewardPanelView : MonoBehaviour
 
     private void Awake()
     {
+        ConfigureUnscaledVisuals();
         continueButton.onClick.AddListener(OnContinueClicked);
+    }
+
+    private void OnEnable()
+    {
+        ConfigureUnscaledVisuals();
     }
 
     private void OnDestroy()
@@ -99,5 +111,19 @@ public sealed class MiniGameRewardPanelView : MonoBehaviour
     private void OnContinueClicked()
     {
         ContinueRequested?.Invoke();
+    }
+
+    private void ConfigureUnscaledVisuals()
+    {
+        Animator[] animators = GetComponentsInChildren<Animator>(true);
+        for (int i = 0; i < animators.Length; i++)
+            animators[i].updateMode = AnimatorUpdateMode.UnscaledTime;
+
+        ParticleSystem[] particleSystems = GetComponentsInChildren<ParticleSystem>(true);
+        for (int i = 0; i < particleSystems.Length; i++)
+        {
+            ParticleSystem.MainModule main = particleSystems[i].main;
+            main.useUnscaledTime = true;
+        }
     }
 }

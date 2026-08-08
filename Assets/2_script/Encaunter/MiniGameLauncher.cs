@@ -90,6 +90,73 @@ public static class MiniGameLauncher
         }
     }
 
+    /// <summary>
+    /// Opens the existing MiniGame reward panel without starting a mini-game.
+    /// The gameplay scene remains paused until the panel is closed.
+    /// </summary>
+    public static async Task ShowRewardAsync(Player player)
+    {
+        if (isRunning)
+            throw new InvalidOperationException("A mini-game or reward panel is already running.");
+
+        if (player == null)
+            throw new ArgumentNullException(nameof(player));
+
+        isRunning = true;
+
+        float previousTimeScale = Time.timeScale;
+        Scene previousActiveScene = SceneManager.GetActiveScene();
+        Scene miniGameScene = default;
+        List<Canvas> hiddenCanvases = new List<Canvas>();
+        List<EventSystem> disabledEventSystems = new List<EventSystem>();
+
+        try
+        {
+            Time.timeScale = 0f;
+            HideSourceSceneUi(hiddenCanvases, disabledEventSystems);
+
+            AsyncOperation loadOperation = SceneManager.LoadSceneAsync(
+                SceneName,
+                LoadSceneMode.Additive);
+
+            if (loadOperation == null)
+                throw new InvalidOperationException($"Could not load scene '{SceneName}'.");
+
+            while (!loadOperation.isDone)
+                await Task.Yield();
+
+            miniGameScene = SceneManager.GetSceneByName(SceneName);
+            await Task.Yield();
+
+            MiniGameSceneManager manager = FindManager(miniGameScene);
+            if (manager == null)
+                throw new InvalidOperationException(
+                    $"{nameof(MiniGameSceneManager)} was not created in scene '{SceneName}'.");
+
+            SceneManager.SetActiveScene(miniGameScene);
+            await manager.ShowSuccessRewardAsync(player);
+        }
+        finally
+        {
+            if (previousActiveScene.IsValid() && previousActiveScene.isLoaded)
+                SceneManager.SetActiveScene(previousActiveScene);
+
+            if (miniGameScene.IsValid() && miniGameScene.isLoaded)
+            {
+                AsyncOperation unloadOperation = SceneManager.UnloadSceneAsync(miniGameScene);
+                if (unloadOperation != null)
+                {
+                    while (!unloadOperation.isDone)
+                        await Task.Yield();
+                }
+            }
+
+            Time.timeScale = previousTimeScale;
+            RestoreSourceSceneUi(hiddenCanvases, disabledEventSystems);
+            isRunning = false;
+        }
+    }
+
     private static void HideSourceSceneUi(
         List<Canvas> hiddenCanvases,
         List<EventSystem> disabledEventSystems)

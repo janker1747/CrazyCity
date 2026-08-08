@@ -6,6 +6,8 @@ using UnityEngine.Events;
 [RequireComponent(typeof(Collider))]
 public sealed class MiniGameTrigger : MonoBehaviour
 {
+    public event Action<MiniGameTrigger, bool> Resolved;
+
     [Header("Mini-game")]
     [SerializeField] private MiniGameId miniGame = MiniGameId.TowerBalance;
     [SerializeField] private bool oneShot = true;
@@ -48,6 +50,8 @@ public sealed class MiniGameTrigger : MonoBehaviour
 
         isRunning = true;
         hasTriggered = true;
+        bool hasResult = false;
+        bool succeeded = false;
 
         try
         {
@@ -56,10 +60,13 @@ public sealed class MiniGameTrigger : MonoBehaviour
             if (this == null)
                 return;
 
-            if (result.IsCompleted)
+            succeeded = result.IsCompleted;
+            if (succeeded)
                 onCompleted?.Invoke();
             else
                 onFailed?.Invoke();
+
+            hasResult = true;
         }
         catch (Exception exception)
         {
@@ -70,7 +77,12 @@ public sealed class MiniGameTrigger : MonoBehaviour
         finally
         {
             if (this != null)
+            {
                 isRunning = false;
+
+                if (hasResult)
+                    Resolved?.Invoke(this, succeeded);
+            }
         }
     }
 

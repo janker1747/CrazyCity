@@ -30,6 +30,7 @@ public sealed class MiniGameSceneManager : MonoBehaviour
     private GameEntry activeEntry;
     private Player player;
     private TaskCompletionSource<MiniGameResult> completionSource;
+    private TaskCompletionSource<bool> rewardCompletionSource;
     private MiniGameResult pendingResult;
     private float remainingTime;
     private bool resultShown;
@@ -66,7 +67,7 @@ public sealed class MiniGameSceneManager : MonoBehaviour
         remainingTime -= Time.unscaledDeltaTime;
 
         if (remainingTime <= 0f)
-            FinishGame(false);
+            FinishGame(GetTimeExpiredResult());
     }
 
     public Task<MiniGameResult> PlayAsync(MiniGameId game, Player owner)
@@ -99,6 +100,33 @@ public sealed class MiniGameSceneManager : MonoBehaviour
         return completionSource.Task;
     }
 
+    /// <summary>
+    /// Shows the standard success reward panel and grants the same rewards as
+    /// a completed mini-game, without activating a mini-game controller.
+    /// </summary>
+    public Task ShowSuccessRewardAsync(Player owner)
+    {
+        if (owner == null)
+            throw new ArgumentNullException(nameof(owner));
+
+        if (completionSource != null || rewardCompletionSource != null)
+            throw new InvalidOperationException("This manager is already showing a result.");
+
+        player = owner;
+        SetAllGamePanelsActive(false);
+        rewardPanelView.Hide();
+
+        awardedCargo.Clear();
+        Array.Clear(awardedCargoByCategory, 0, awardedCargoByCategory.Length);
+
+        GameData.Instance.Wallet.AddGold(coinReward);
+        GrantCargoRewards();
+
+        rewardCompletionSource = new TaskCompletionSource<bool>();
+        rewardPanelView.ShowSuccess(coinReward, awardedCargoByCategory);
+        return rewardCompletionSource.Task;
+    }
+
     /// <summary>Can be wired to a UI button to leave the game and take the penalty.</summary>
     public void GiveUp()
     {
@@ -109,6 +137,13 @@ public sealed class MiniGameSceneManager : MonoBehaviour
     /// <summary>Called by the result panel button.</summary>
     public void CloseResult()
     {
+        if (rewardCompletionSource != null)
+        {
+            rewardCompletionSource.TrySetResult(true);
+            rewardCompletionSource = null;
+            return;
+        }
+
         if (!resultShown || pendingResult == null)
             return;
 
@@ -118,6 +153,14 @@ public sealed class MiniGameSceneManager : MonoBehaviour
     private void OnMiniGameFinished(bool success)
     {
         FinishGame(success);
+    }
+
+    private bool GetTimeExpiredResult()
+    {
+        if (activeEntry.Controller is TowerBalanceMiniGame towerBalance)
+            return towerBalance.CompleteForTimeLimit();
+
+        return false;
     }
 
     private void FinishGame(bool success)
@@ -268,6 +311,12 @@ public sealed class MiniGameSceneManager : MonoBehaviour
         {
             completionSource.TrySetException(
                 new InvalidOperationException("Mini-game scene was closed before a result was accepted."));
+        }
+
+        if (rewardCompletionSource != null && !rewardCompletionSource.Task.IsCompleted)
+        {
+            rewardCompletionSource.TrySetException(
+                new InvalidOperationException("Reward panel was closed before it was accepted."));
         }
     }
 
