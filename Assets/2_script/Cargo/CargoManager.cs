@@ -14,6 +14,12 @@ public class CargoManager : MonoBehaviour
 
     public DeliveryPoint ActiveDeliveryPoint => activeDeliveryPoint;
     public event Action DeliveryCompleted;
+    public event Action CargoDelivered;
+
+    private void Awake()
+    {
+        ChoiceContract.TryInitialize(this);
+    }
 
     public DeliveryPoint CreateDeliveryPointForPlayer(Vector3 playerPosition, Player player)
     {
@@ -41,5 +47,10 @@ public class CargoManager : MonoBehaviour
     public void NotifySuccessfulDelivery()
     {
         DeliveryCompleted?.Invoke();
+    }
+
+    public void NotifyCargoDelivered()
+    {
+        CargoDelivered?.Invoke();
     }
 }

@@ -36,6 +36,15 @@ public class Health
         _currentHealth = Mathf.Min(_currentHealth + amount, _maxHealth);
     }
 
+    public void AddMaxHealth(float amount)
+    {
+        if (amount <= 0)
+            return;
+
+        _maxHealth += amount;
+        _currentHealth = Mathf.Min(_currentHealth + amount, _maxHealth);
+    }
+
     public void RemoveHealth(int amount)
     {
         if (amount <= 0)

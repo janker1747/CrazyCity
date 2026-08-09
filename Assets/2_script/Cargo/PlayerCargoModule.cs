@@ -477,6 +477,7 @@ public class PlayerCargoModule : MonoBehaviour
 
                 DeliverCargo(activeCargo.Cargo);
                 GameData.Instance.AddCargo(activeCargo.Cargo);
+                cargoManager?.NotifyCargoDelivered();
 
                 int reward =
                     CalculateReward(

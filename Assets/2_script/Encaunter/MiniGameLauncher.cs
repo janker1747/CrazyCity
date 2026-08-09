@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -12,8 +13,11 @@ using UnityEngine.SceneManagement;
 public static class MiniGameLauncher
 {
     public const string SceneName = "MiniGame";
+    private const float SlowTimeScale = 0.1f;
+    private const float TimeScaleTransitionDuration = 0.25f;
 
     private static bool isRunning;
+    private static Tween timeScaleTween;
 
     public static bool IsRunning => isRunning;
 
@@ -43,7 +47,7 @@ public static class MiniGameLauncher
 
         try
         {
-            Time.timeScale = 0f;
+            ChangeTimeScale(SlowTimeScale);
             HideSourceSceneUi(hiddenCanvases, disabledEventSystems);
 
             AsyncOperation loadOperation = SceneManager.LoadSceneAsync(
@@ -84,7 +88,7 @@ public static class MiniGameLauncher
                 }
             }
 
-            Time.timeScale = previousTimeScale;
+            ChangeTimeScale(previousTimeScale);
             RestoreSourceSceneUi(hiddenCanvases, disabledEventSystems);
             isRunning = false;
         }
@@ -112,7 +116,7 @@ public static class MiniGameLauncher
 
         try
         {
-            Time.timeScale = 0f;
+            ChangeTimeScale(SlowTimeScale);
             HideSourceSceneUi(hiddenCanvases, disabledEventSystems);
 
             AsyncOperation loadOperation = SceneManager.LoadSceneAsync(
@@ -151,7 +155,7 @@ public static class MiniGameLauncher
                 }
             }
 
-            Time.timeScale = previousTimeScale;
+            ChangeTimeScale(previousTimeScale);
             RestoreSourceSceneUi(hiddenCanvases, disabledEventSystems);
             isRunning = false;
         }
@@ -199,6 +203,17 @@ public static class MiniGameLauncher
             if (disabledEventSystems[i] != null)
                 disabledEventSystems[i].enabled = true;
         }
+    }
+
+    private static void ChangeTimeScale(float targetTimeScale)
+    {
+        timeScaleTween?.Kill();
+        timeScaleTween = DOTween
+            .To(() => Time.timeScale, value => Time.timeScale = value,
+                Mathf.Clamp(targetTimeScale, 0.01f, 1f),
+                TimeScaleTransitionDuration)
+            .SetEase(Ease.OutQuad)
+            .SetUpdate(true);
     }
 
     private static MiniGameSceneManager FindManager(Scene scene)

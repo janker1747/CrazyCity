@@ -14,7 +14,7 @@ public class BombSpawner : MonoBehaviour
     [SerializeField] private int _spawnAttempts = 8;
     [SerializeField] private float _checkRadius = 0.35f;
     [SerializeField] private float _minDistanceAhead = 1f;
-    [SerializeField, Min(1)] private int _bombCount = 1;
+    [SerializeField, Min(0)] private int _bombCount = 1;
     [SerializeField, Min(0)] private int _bombIncreasePerDelivery = 1;
 
     private Transform _player;
@@ -47,7 +47,7 @@ public class BombSpawner : MonoBehaviour
         if (_player == null && !ResolvePlayer())
             return;
 
-        int bombsToSpawn = Mathf.Max(1, _bombCount);
+        int bombsToSpawn = Mathf.Max(0, _bombCount);
 
         for (int i = 0; i < bombsToSpawn; i++)
             TrySpawnBomb();
@@ -136,5 +136,10 @@ public class BombSpawner : MonoBehaviour
     private void OnDeliveryCompleted()
     {
         _bombCount += Mathf.Max(0, _bombIncreasePerDelivery);
+    }
+
+    public void RemoveBombs(int count = 1)
+    {
+        _bombCount = Mathf.Max(0, _bombCount - Mathf.Max(0, count));
     }
 }

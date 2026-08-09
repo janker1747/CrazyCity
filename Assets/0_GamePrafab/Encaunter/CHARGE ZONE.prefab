@@ -13,8 +13,9 @@ GameObject:
   - component: {fileID: 8830035192146855591}
   - component: {fileID: 5775523101950379079}
   - component: {fileID: 1529522113617251549}
-  - component: {fileID: 3009258763423701044}
   - component: {fileID: 1053870018626150}
+  - component: {fileID: 7127337938765671647}
+  - component: {fileID: 2203198356973465751}
   m_Layer: 0
   m_Name: CHARGE ZONE
   m_TagString: Untagged
@@ -138,7 +139,30 @@ CapsuleCollider:
   m_Height: 189.97678
   m_Direction: 1
   m_Center: {x: 0.49610138, y: 1.9099984, z: -2.6838303}
---- !u!114 &3009258763423701044
+--- !u!136 &1053870018626150
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 98161893246560207}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 93.202675
+  m_Height: 189.97678
+  m_Direction: 1
+  m_Center: {x: 0.49610138, y: 1.9099984, z: -2.6838303}
+--- !u!114 &7127337938765671647
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -155,6 +179,7 @@ MonoBehaviour:
   initialChargeDuration: 3
   chargeDurationIncrease: 1
   cooldownDuration: 40
+  cooldownDurationIncrease: 5
   cooldownFillImages:
   - {fileID: 1605273594900944043}
   - {fileID: 8837665246619739254}
@@ -169,7 +194,7 @@ MonoBehaviour:
   onCooldownFinished:
     m_PersistentCalls:
       m_Calls: []
---- !u!136 &1053870018626150
+--- !u!136 &2203198356973465751
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

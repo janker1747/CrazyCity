@@ -9,6 +9,7 @@ public class ScoreSystem
     private int _minScore;
 
     private float _multiplier = 1f;
+    private float _contractMultiplier;
     private bool _safeActive = false;
 
     public int Score => _score;
@@ -18,7 +19,7 @@ public class ScoreSystem
 
     public void AddScore(int amount)
     {
-        int final = Mathf.RoundToInt(amount * _multiplier);
+        int final = Mathf.RoundToInt(amount * _multiplier * GetTotalMultiplier());
 
         _score += final;
 
@@ -48,6 +49,16 @@ public class ScoreSystem
     public void SetMultiplier(float value)
     {
         _multiplier = value;
+    }
+
+    public void AddContractMultiplier(float value)
+    {
+        _contractMultiplier += Mathf.Max(0f, value);
+    }
+
+    private float GetTotalMultiplier()
+    {
+        return _contractMultiplier > 0f ? _contractMultiplier : 1f;
     }
 
     public void ActivateSafe()
