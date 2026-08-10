@@ -48,7 +48,12 @@ public class PlayerHealth : MonoBehaviour
         }
         else
         {
+            float healthBeforeDamage = CurrentHealth;
             _health.TakeDamage(damage);
+
+            if (CurrentHealth < healthBeforeDamage)
+                GameAudio.PlaySfx(GameAudioCue.PlayerDamage, transform.position);
+
             HealthChanged?.Invoke(CurrentHealth);
         }
     }

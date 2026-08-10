@@ -21,7 +21,6 @@ public abstract class Cargo : ScriptableObject
     
     [Header("Pickup Feedback")]
     [SerializeField] private ParticleSystem pickupParticlePrefab;
-    [SerializeField] private AudioClip pickupSound;
 
     public event Action<float> HealthGargoDelivered;
     public string CargoName => cargoName;
@@ -39,11 +38,12 @@ public abstract class Cargo : ScriptableObject
     public virtual int ComboAmount => Mathf.Max(1, comboAmount);
 
     public ParticleSystem PickupParticlePrefab => pickupParticlePrefab;
-    public AudioClip PickupSound => pickupSound;
 
     public void PlayPickupFeedback(Vector3 position)
     {
-        if (pickupParticlePrefab == null && pickupSound == null)
+        GameAudio.PlaySfx(GameAudioCue.PickupCargo, position);
+
+        if (pickupParticlePrefab == null)
             return;
 
         ImpactSystem impactSystem = ImpactSystem.Current;
@@ -56,7 +56,7 @@ public abstract class Cargo : ScriptableObject
             return;
         }
 
-        impactSystem.PlayFeedback(position, pickupParticlePrefab, pickupSound);
+        impactSystem.PlayFeedback(position, pickupParticlePrefab);
     }
 
     public virtual void OnPickup(Player player) { }

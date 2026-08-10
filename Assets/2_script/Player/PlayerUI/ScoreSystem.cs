@@ -25,6 +25,9 @@ public class ScoreSystem
 
         OnScoreChanged?.Invoke(_score, final);
         OnScoreAdded?.Invoke(final);
+
+        if (final > 0)
+            GameAudio.PlaySfx(GameAudioCue.ScoreGain);
     }
 
     public void MinusScore(int amount)
@@ -43,7 +46,10 @@ public class ScoreSystem
         OnScoreChanged?.Invoke(_score, delta);
 
         if (delta < 0)
+        {
             OnScoreRemoved?.Invoke(-delta);
+            GameAudio.PlaySfx(GameAudioCue.ScoreLoss);
+        }
     }
 
     public void SetMultiplier(float value)

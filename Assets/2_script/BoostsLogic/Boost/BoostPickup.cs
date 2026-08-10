@@ -11,6 +11,7 @@ class BoostPickup : MonoBehaviour
             return;
 
         player.BoostSlot.Set(data);
+        GameAudio.PlaySfx(GameAudioCue.PickupBoost, transform.position);
         
         SpawnedWorldObject spawnedObject =
             GetComponent<SpawnedWorldObject>();

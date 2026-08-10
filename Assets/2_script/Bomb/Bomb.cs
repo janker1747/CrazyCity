@@ -27,6 +27,7 @@ public class Bomb : MonoBehaviour
         _timer.OnTimerCompleted -= Explode;
 
         _explosionFX.Play();
+        GameAudio.PlaySfx(GameAudioCue.BombExplosion, transform.position);
 
         Collider[] hits = Physics.OverlapSphere(transform.position, _radius);
 

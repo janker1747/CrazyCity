@@ -6,7 +6,6 @@ public class ImpactSystem : MonoBehaviour
 
     [SerializeField] private PlayerCollisionHandler _collisionHandler;
     [SerializeField] private ParticlePool _particlePool;
-    [SerializeField] private AudioSource _audioSource;
     [SerializeField] private Player _player;
 
     private ScoreSystem _scoreSystem;
@@ -37,10 +36,9 @@ public class ImpactSystem : MonoBehaviour
             Current = null;
     }
 
-    public void PlayFeedback(Vector3 position, ParticleSystem particlePrefab, AudioClip sound)
+    public void PlayFeedback(Vector3 position, ParticleSystem particlePrefab)
     {
         PlayParticles(position, particlePrefab);
-        PlaySound(sound);
     }
 
     public void SetPlayer(Player player)
@@ -62,7 +60,7 @@ public class ImpactSystem : MonoBehaviour
             return;
 
         PlayParticles(position, data);
-        PlaySound(data);
+        GameAudio.PlaySfx(GameAudioCue.CollisionImpact, position);
         AddScore(data);
         ShakeCamera(data);
     }
@@ -81,19 +79,6 @@ public class ImpactSystem : MonoBehaviour
             particlePrefab,
             position,
             Quaternion.identity);
-    }
-
-    private void PlaySound(ImpactData data)
-    {
-        PlaySound(data != null ? data.sound : null);
-    }
-
-    private void PlaySound(AudioClip sound)
-    {
-        if (sound == null || _audioSource == null)
-            return;
-
-        _audioSource.PlayOneShot(sound);
     }
 
     private void AddScore(ImpactData data)

@@ -6,9 +6,6 @@ public class ImpactData : ScriptableObject
     [Header("Particles")]
     public ParticleSystem particlePrefab;
 
-    [Header("Sound")]
-    public AudioClip sound;
-
     [Header("Score")]
     public int score;
 

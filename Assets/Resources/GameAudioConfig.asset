@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68740beddd80466ca2a7698d668c03e2, type: 3}
+  m_Name: GameAudioConfig
+  m_EditorClassIdentifier: 
+  mixer: {fileID: 24100000, guid: 356e8793b9df1494e952b4d341310261, type: 2}
+  musicGroup: {fileID: 24300008, guid: 356e8793b9df1494e952b4d341310261, type: 2}
+  sfxGroup: {fileID: 24300012, guid: 356e8793b9df1494e952b4d341310261, type: 2}
+  gameplayMusic:
+  - {fileID: 8300000, guid: a22ac07bee1ae3c468fccf8393082983, type: 3}
+  - {fileID: 8300000, guid: 074805f4977102c4bbfeae1c824fd487, type: 3}
+  - {fileID: 8300000, guid: 2fc00b8717c325d4a967fefbcc10354f, type: 3}
+  - {fileID: 8300000, guid: 6cd105d21eb6d784eb97a2c57b86ac09, type: 3}
+  menuMusic: {fileID: 8300000, guid: cedc449f6875cb442a8bed0935f256fa, type: 3}
+  gameplayTransitionDuration: 5
+  menuMusicPitch: 0.9004
+  musicMaxVolumeDecibels: -10
+  chargeStart: {fileID: 8300000, guid: e64dae3bce290af48895501221f2d6da, type: 3}
+  chargeLoop: {fileID: 8300000, guid: 3fe10644fb0a46547809a2941787c97b, type: 3}
+  chargeComplete: {fileID: 8300000, guid: 7a5a0b8e62862e342a3da96b395a8006, type: 3}
+  chargeCancel: {fileID: 0}
+  pickupCargo: {fileID: 8300000, guid: 1d6c70a21a922b5469d8f20f240b144f, type: 3}
+  pickupBoost: {fileID: 8300000, guid: 546f1f643b2557448ab210f6bf96116d, type: 3}
+  deliverySuccess: {fileID: 8300000, guid: fec79993f7db7314c8c108ce4e5e7dc7, type: 3}
+  boostActivate: {fileID: 8300000, guid: 6d3dee88901059c4684719d34970f19f, type: 3}
+  bombExplosion: {fileID: 8300000, guid: 670f86b124e8f4b468e4d25a3d0d78d8, type: 3}
+  playerDamage: {fileID: 8300000, guid: ec4c367ec6050874c9794be09eb145ae, type: 3}
+  collisionImpact: {fileID: 8300000, guid: a2830d051d8d59847bf5f4d54ec3f4ab, type: 3}
+  buttonClick: {fileID: 8300000, guid: 5d59aaaa8d678484692f42a13d5f2a8e, type: 3}
+  scoreGain: {fileID: 0}
+  scoreLoss: {fileID: 0}

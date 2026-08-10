@@ -127,6 +127,7 @@ public class Player : MonoBehaviour
         var boost = data.Create(this);
 
         BoostSystem.ActivateBoost(boost);
+        GameAudio.PlaySfx(GameAudioCue.BoostActivate, transform.position);
     }
 
     private void OnDisable()

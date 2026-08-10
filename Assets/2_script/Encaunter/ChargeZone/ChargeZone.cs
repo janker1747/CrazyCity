@@ -109,6 +109,8 @@ public sealed class ChargeZone : MonoBehaviour
         if (!isCharging)
         {
             isCharging = true;
+            GameAudio.PlaySfx(GameAudioCue.ChargeStart, transform.position);
+            GameAudio.StartLoop(GameAudioCue.ChargeLoop, transform.position);
             onChargeStarted?.Invoke();
         }
 
@@ -144,6 +146,7 @@ public sealed class ChargeZone : MonoBehaviour
         isCharging = false;
         chargeElapsed = 0f;
         visualProgress = 0f;
+        GameAudio.StopLoop();
 
         if (chargeSprite != null)
             chargeSprite.transform.localScale = Vector3.zero;
@@ -155,6 +158,8 @@ public sealed class ChargeZone : MonoBehaviour
         {
             isCharging = false;
             chargeElapsed = 0f;
+            GameAudio.StopLoop();
+            GameAudio.PlaySfx(GameAudioCue.ChargeCancel, transform.position);
         }
 
         SetVisualProgress(0f, deltaTime);
@@ -170,6 +175,8 @@ public sealed class ChargeZone : MonoBehaviour
         cooldownFillAmount = 0f;
         successfulCharges++;
         cooldownRemaining = CurrentCooldownDuration;
+        GameAudio.StopLoop();
+        GameAudio.PlaySfx(GameAudioCue.ChargeComplete, transform.position);
         UpdateCooldownFillImages();
         onChargeCompleted?.Invoke();
 

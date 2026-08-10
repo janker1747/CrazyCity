@@ -11,13 +11,10 @@ public class PlayerCargoModule : MonoBehaviour
 
     [Header("Fail Sequence")]
     [SerializeField] private float failInterval = 0.08f;
-    [SerializeField] private AudioClip failSound;
     [SerializeField] private ParticleSystem failParticle;
 
     [Header("Success Sequence")]
-    [Header("Success Sequence")]
     [SerializeField] private float successInterval = 0.05f;
-    [SerializeField] private AudioClip successSound;
     [SerializeField] private ParticleSystem successParticle;
 
     [Header("Combo Reward")]
@@ -543,8 +540,6 @@ public class PlayerCargoModule : MonoBehaviour
         if (failParticle != null)
             Instantiate(failParticle, position, Quaternion.identity);
 
-        if (failSound != null)
-            AudioSource.PlayClipAtPoint(failSound, position);
     }
 
     private void PlayCargoSuccessFeedback()
@@ -557,8 +552,7 @@ public class PlayerCargoModule : MonoBehaviour
         if (successParticle != null)
             Instantiate(successParticle, position, Quaternion.identity);
 
-        if (successSound != null)
-            AudioSource.PlayClipAtPoint(successSound, position);
+        GameAudio.PlaySfx(GameAudioCue.DeliverySuccess, position);
     }
 
     private void CompleteCargoAt(
